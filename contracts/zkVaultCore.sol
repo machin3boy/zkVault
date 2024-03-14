@@ -4,16 +4,14 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/IGroth16VerifierP2.sol";
 
-/*
-           88      8b           d8                         88              
+/*         88      8b           d8                         88              
            88      `8b         d8'                         88    ,d        
            88       `8b       d8'                          88    88        
 888888888  88   ,d8  `8b     d8'  ,adPPYYba,  88       88  88  MM88MMM     
      a8P"  88 ,a8"    `8b   d8'   ""     `Y8  88       88  88    88        
   ,d8P'    8888[       `8b d8'    ,adPPPPP88  88       88  88    88        
 ,d8"       88`"Yba,     `888'     88,    ,88  "8a,   ,a88  88    88,       
-888888888  88   `Y8a     `8'      `"8bbdP"Y8   `"YbbdP'Y8  88    "Y888     
-*/                                                                         
+888888888  88   `Y8a     `8'      `"8bbdP"Y8   `"YbbdP'Y8  88    "Y8*/                                                                         
 
 contract zkVaultCore is ERC20 {
     mapping(address => string) public usernames;
