@@ -17,14 +17,14 @@ import "./interfaces/IMFA.sol";
 
 contract zkVaultCore is ERC20 {
     mapping(address => string) public usernames;
-    mapping(string => address) public addressByUsername;
+    mapping(string => address) public usernameAddress;
     mapping(address => uint256) public passwordHashes;
 
     mapping(address => IMFA) public MFAProviders;
     mapping(address => address) public MFAProviderOwners;
 
-    mapping(uint256 => mapping(uint256 => IMFA)) vaultRequestIds;
-    mapping(uint256 => uint256) vaultRequestIdCounts;
+    mapping(uint256 => mapping(uint256 => IMFA)) vaultRequestMFAProviders;
+    mapping(string => uint256) vaultRequestIDCount;
 
     //ZKP Solidity verifier
     IGroth16VerifierP2 public passwordVerifier;
@@ -48,29 +48,32 @@ contract zkVaultCore is ERC20 {
             "Username already set"
         );
         usernames[msg.sender] = _username;
-        addressByUsername[_username] = msg.sender;
+        usernameAddress[_username] = msg.sender;
+        vaultRequestIDCount[_username] = 0;
         passwordHashes[msg.sender] = _passwordHash;
     }
 
-    function resetUsername(
+    function resetUsernameAddress(
         string memory _username,
         uint256 passwordHash,
         uint256 timestamp,
         ProofParameters calldata params
     ) external {
-        address userAddress = addressByUsername[_username];
+        address userAddress = usernameAddress[_username];
         require(userAddress != address(0), "Username does not exist");
 
         // Verify password
         verifyPassword(passwordHashes[userAddress], timestamp, params);
 
+        recoverAssetsFromMirroredPool(usernameAddress[_username], msg.sender);
+
         // Clear old mappings
-        delete addressByUsername[_username];
+        delete usernameAddress[_username];
         delete usernames[userAddress];
 
         // Reset mappings
         usernames[msg.sender] = _username;
-        addressByUsername[_username] = msg.sender;
+        usernameAddress[_username] = msg.sender;
         passwordHashes[msg.sender] = passwordHash;
     }
 
@@ -159,8 +162,11 @@ contract zkVaultCore is ERC20 {
                 string(abi.encodePacked("Mirrored ", _symbol)), // Symbol for the mirrored asset
                 string(abi.encodePacked("m", _symbol)), // Name for the mirrored asset
                 _amount,
-                _nativeAsset
+                _nativeAsset,
+                address(this)
             );
+
+            ERC20(_nativeAsset).approve(address(mirroredToken), _amount);
 
             ERC20(_nativeAsset).transferFrom(
                 msg.sender,
@@ -182,8 +188,11 @@ contract zkVaultCore is ERC20 {
                 string(abi.encodePacked("Mirrored ", _symbol)), // Symbol for the mirrored asset
                 string(abi.encodePacked("m", _symbol)), // Name for the mirrored asset
                 _tokenId,
-                _nativeAsset
+                _nativeAsset,
+                address(this)
             );
+
+            ERC721(_nativeAsset).approve(address(mirroredToken), _tokenId);
 
             ERC721(_nativeAsset).transferFrom(
                 msg.sender,
@@ -266,6 +275,36 @@ contract zkVaultCore is ERC20 {
             );
         }
     }
+
+    function recoverAssetsFromMirroredPool(
+        address _oldAddress,
+        address _newAddress
+    ) public {
+        // Retrieve mirrored ERC20 assets for the old username
+        for (
+            uint256 i = 0;
+            i < vaultRequestIDCount[usernames[_oldAddress]];
+            i++
+        ) {
+            MirroredERC20Asset storage mirroredERC20Asset = mirroredERC20Assets[
+                usernames[_oldAddress]
+            ][i];
+            if (mirroredERC20Asset.mirroredTokenAddress != address(0)) {
+                // Transfer ERC20 tokens from old address to new address
+                uint256 balance = mirroredERC20Asset.mirroredToken.balanceOf(
+                    _oldAddress
+                );
+                if (balance > 0) {
+                    // Transfer mirrored ERC20 tokens from the sender to the contract
+                    mirroredERC20Asset.mirroredToken.transferFrom(
+                        _oldAddress,
+                        _newAddress,
+                        balance
+                    );
+                }
+            }
+        }
+    }
 }
 
 contract zkVaultMirroredERC20 is ERC20 {
@@ -275,10 +314,12 @@ contract zkVaultMirroredERC20 is ERC20 {
         string memory _name,
         string memory _symbol,
         uint256 _supply,
-        address _underlyingAssetAddress
+        address _underlyingAssetAddress,
+        address _owner
     ) ERC20(_name, _symbol) {
         _mint(msg.sender, _supply);
         underlyingAssetAddress = _underlyingAssetAddress;
+        approve(_owner, _supply);
     }
 }
 
@@ -289,9 +330,11 @@ contract zkVaultMirroredERC721 is ERC721 {
         string memory _name,
         string memory _symbol,
         uint256 _tokenId,
-        address _underlyingAssetAddress
+        address _underlyingAssetAddress,
+        address _owner
     ) ERC721(_name, _symbol) {
         _mint(msg.sender, _tokenId);
         underlyingAssetAddress = _underlyingAssetAddress;
+        approve(_owner, _tokenId);
     }
 }
