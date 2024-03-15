@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/IGroth16VerifierP2.sol";
 import "./interfaces/IMFA.sol";
 
-
 /*         88      8b           d8                         88              
            88      `8b         d8'                         88    ,d        
            88       `8b       d8'                          88    88        
@@ -13,7 +12,7 @@ import "./interfaces/IMFA.sol";
      a8P"  88 ,a8"    `8b   d8'   ""     `Y8  88       88  88    88        
   ,d8P'    8888[       `8b d8'    ,adPPPPP88  88       88  88    88        
 ,d8"       88`"Yba,     `888'     88,    ,88  "8a,   ,a88  88    88,       
-888888888  88   `Y8a     `8'      `"8bbdP"Y8   `"YbbdP'Y8  88    "Y8*/                                                                         
+888888888  88   `Y8a     `8'      `"8bbdP"Y8   `"YbbdP'Y8  88    "Y8*/
 
 contract zkVaultCore is ERC20 {
     mapping(address => string) public usernames;
@@ -76,7 +75,7 @@ contract zkVaultCore is ERC20 {
         uint256 timestamp,
         ProofParameters calldata params
     ) public view {
-        uint256 timeLimit = 300;
+        uint256 timeLimit = 120;
         require(timestamp <= block.timestamp);
         require(timestamp >= block.timestamp - timeLimit);
 
@@ -113,5 +112,4 @@ contract zkVaultCore is ERC20 {
         delete _MFAProviders[provider];
         delete _MFAProviderOwners[provider];
     }
-
 }
