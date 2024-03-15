@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./interfaces/IGroth16VerifierP2.sol";
 import "./interfaces/IMFA.sol";
 
@@ -19,8 +20,11 @@ contract zkVaultCore is ERC20 {
     mapping(string => address) public addressByUsername;
     mapping(address => uint256) public passwordHashes;
 
-    mapping(address => IMFA) public _MFAProviders;
-    mapping(address => address) public _MFAProviderOwners;
+    mapping(address => IMFA) public MFAProviders;
+    mapping(address => address) public MFAProviderOwners;
+
+    mapping(uint256 => mapping(uint256 => IMFA)) vaultRequestIds;
+    mapping(uint256 => uint256) vaultRequestIdCounts;
 
     //ZKP Solidity verifier
     IGroth16VerifierP2 public passwordVerifier;
@@ -97,19 +101,105 @@ contract zkVaultCore is ERC20 {
 
     function registerMFAProvider(address provider) public {
         require(
-            _MFAProviders[provider] == IMFA(address(0)),
+            MFAProviders[provider] == IMFA(address(0)),
             "Provider already exists"
         );
-        _MFAProviders[provider] = IMFA(provider);
-        _MFAProviderOwners[provider] = msg.sender;
+        MFAProviders[provider] = IMFA(provider);
+        MFAProviderOwners[provider] = msg.sender;
     }
 
     function deregisterMFAProvider(address provider) public {
         require(
-            msg.sender == _MFAProviderOwners[provider],
+            msg.sender == MFAProviderOwners[provider],
             "Not the owner of this MFA provider"
         );
-        delete _MFAProviders[provider];
-        delete _MFAProviderOwners[provider];
+        delete MFAProviders[provider];
+        delete MFAProviderOwners[provider];
+    }
+
+    struct MirroredERC20Asset {
+        address nativeAsset;
+        ERC20 mirroredToken;
+    }
+
+    struct MirroredERC721Asset {
+        address nativeAsset;
+        ERC721 mirroredToken;
+    }
+
+    mapping(address => MirroredERC20Asset) public mirroredERC20Assets;
+    mapping(address => MirroredERC721Asset) public mirroredERC721Assets;
+
+    function lockTokens(
+        address _nativeAsset,
+        uint256 _amount,
+        string memory _symbol,
+        bool _isNFT,
+        uint256 _requestId,
+        address[] memory _MFAProviders
+    ) public {
+        require(
+            mirroredERC20Assets[_nativeAsset].nativeAsset == address(0) &&
+                mirroredERC721Assets[_nativeAsset].nativeAsset == address(0),
+            "Mirrored asset already exists"
+        );
+
+        if (!_isNFT) {
+            // Create a new ERC20 token for the mirrored asset
+            ERC20 mirroredToken = new zkVaultMirroredERC20(
+                string(abi.encodePacked("Mirrored ", _symbol)), // Symbol for the mirrored asset
+                string(abi.encodePacked("m", _symbol)), // Name for the mirrored asset
+                _amount,
+                _nativeAsset
+            );
+
+            // Store information about the mirrored asset
+            mirroredERC20Assets[_nativeAsset] = MirroredERC20Asset(
+                _nativeAsset,
+                mirroredToken
+            );
+        } else {
+            // Create a new ERC721 token for the mirrored asset
+            ERC721 mirroredToken = new zkVaultMirroredERC721(
+                string(abi.encodePacked("Mirrored ", _symbol)), // Symbol for the mirrored asset
+                string(abi.encodePacked("m", _symbol)), // Name for the mirrored asset
+                _amount,
+                _nativeAsset
+            );
+
+            // Store information about the mirrored asset
+            mirroredERC721Assets[_nativeAsset] = MirroredERC721Asset(
+                _nativeAsset,
+                mirroredToken
+            );
+        }
+    }
+}
+
+contract zkVaultMirroredERC20 is ERC20 {
+    address public underlyingAssetAddress;
+
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        uint256 _supply,
+        address _underlyingAssetAddress
+    ) ERC20(_name, _symbol) {
+        _mint(msg.sender, _supply);
+        underlyingAssetAddress = _underlyingAssetAddress;
+    }
+}
+
+contract zkVaultMirroredERC721 is ERC721 {
+    address public underlyingAssetAddress;
+
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        uint256 _tokenId,
+        address _underlyingAssetAddress
+    ) ERC721(_name, _symbol) {
+        _mint(msg.sender, _tokenId);
+        underlyingAssetAddress = _underlyingAssetAddress;
     }
 }
