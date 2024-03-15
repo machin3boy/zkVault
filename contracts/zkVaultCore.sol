@@ -118,29 +118,38 @@ contract zkVaultCore is ERC20 {
     }
 
     struct MirroredERC20Asset {
-        address nativeAsset;
+        address underlyingAssetAddress;
+        address mirroredTokenAddress;
         ERC20 mirroredToken;
     }
 
     struct MirroredERC721Asset {
-        address nativeAsset;
+        address underlyingAssetAddress;
+        address mirroredTokenAddress;
         ERC721 mirroredToken;
     }
 
-    mapping(address => MirroredERC20Asset) public mirroredERC20Assets;
-    mapping(address => MirroredERC721Asset) public mirroredERC721Assets;
+    mapping(string => mapping(uint256 => MirroredERC20Asset))
+        public mirroredERC20Assets;
+    mapping(string => mapping(uint256 => MirroredERC721Asset))
+        public mirroredERC721Assets;
 
-    function lockTokens(
+    function lockToken(
         address _nativeAsset,
         uint256 _amount,
         string memory _symbol,
         bool _isNFT,
+        uint256 _tokenId,
         uint256 _requestId,
         address[] memory _MFAProviders
     ) public {
         require(
-            mirroredERC20Assets[_nativeAsset].nativeAsset == address(0) &&
-                mirroredERC721Assets[_nativeAsset].nativeAsset == address(0),
+            mirroredERC20Assets[usernames[msg.sender]][_requestId]
+                .mirroredTokenAddress ==
+                address(0) &&
+                mirroredERC721Assets[usernames[msg.sender]][_requestId]
+                    .mirroredTokenAddress ==
+                address(0),
             "Mirrored asset already exists"
         );
 
@@ -153,9 +162,18 @@ contract zkVaultCore is ERC20 {
                 _nativeAsset
             );
 
+            ERC20(_nativeAsset).transferFrom(
+                msg.sender,
+                address(this),
+                _amount
+            );
+
             // Store information about the mirrored asset
-            mirroredERC20Assets[_nativeAsset] = MirroredERC20Asset(
+            mirroredERC20Assets[usernames[msg.sender]][
+                _requestId
+            ] = MirroredERC20Asset(
                 _nativeAsset,
+                address(mirroredToken),
                 mirroredToken
             );
         } else {
@@ -163,14 +181,88 @@ contract zkVaultCore is ERC20 {
             ERC721 mirroredToken = new zkVaultMirroredERC721(
                 string(abi.encodePacked("Mirrored ", _symbol)), // Symbol for the mirrored asset
                 string(abi.encodePacked("m", _symbol)), // Name for the mirrored asset
-                _amount,
+                _tokenId,
                 _nativeAsset
             );
 
+            ERC721(_nativeAsset).transferFrom(
+                msg.sender,
+                address(this),
+                _tokenId
+            );
+
             // Store information about the mirrored asset
-            mirroredERC721Assets[_nativeAsset] = MirroredERC721Asset(
+            mirroredERC721Assets[usernames[msg.sender]][
+                _requestId
+            ] = MirroredERC721Asset(
                 _nativeAsset,
+                address(mirroredToken),
                 mirroredToken
+            );
+        }
+    }
+
+    function unlockToken(
+        uint256 _amount,
+        uint256 _tokenId,
+        uint256 _requestId
+    ) public {
+        // Retrieve the mirrored ERC20 asset for the user and requestId
+        MirroredERC20Asset storage mirroredERC20Asset = mirroredERC20Assets[
+            usernames[msg.sender]
+        ][_requestId];
+
+        // Retrieve the mirrored ERC721 asset for the user and requestId
+        MirroredERC721Asset storage mirroredERC721Asset = mirroredERC721Assets[
+            usernames[msg.sender]
+        ][_requestId];
+
+        require(
+            mirroredERC20Asset.mirroredTokenAddress != address(0) ||
+                mirroredERC721Asset.mirroredTokenAddress != address(0),
+            "Mirrored asset does not exist"
+        );
+
+        if (mirroredERC20Asset.mirroredTokenAddress != address(0)) {
+            // ERC20 mirrored asset
+            require(
+                mirroredERC20Asset.mirroredToken.balanceOf(msg.sender) >=
+                    _amount,
+                "Insufficient mirrored balance"
+            );
+
+            // Transfer mirrored ERC20 tokens from the sender to the contract
+            mirroredERC20Asset.mirroredToken.transferFrom(
+                msg.sender,
+                address(this),
+                _amount
+            );
+
+            // Transfer ERC20 tokens back to the sender
+            ERC20(mirroredERC20Asset.underlyingAssetAddress).transfer(
+                msg.sender,
+                _amount
+            );
+        } else {
+            // ERC721 mirrored asset
+            require(
+                mirroredERC721Asset.mirroredToken.ownerOf(_tokenId) ==
+                    msg.sender,
+                "Not token owner"
+            );
+
+            // Transfer ERC721 token back to the sender
+            mirroredERC721Asset.mirroredToken.transferFrom(
+                msg.sender,
+                address(this),
+                _tokenId
+            );
+
+            // Transfer ERC721 token back to the sender
+            ERC721(mirroredERC721Asset.underlyingAssetAddress).transferFrom(
+                address(this),
+                msg.sender,
+                _tokenId
             );
         }
     }
