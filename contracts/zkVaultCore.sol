@@ -25,9 +25,6 @@ contract zkVaultCore is ERC20 {
     mapping(address => IMFA) public MFAProviders;
     mapping(address => address) public MFAProviderOwners;
 
-    mapping(uint256 => mapping(uint256 => IMFA)) vaultRequestMFAProviders;
-    mapping(string => uint256) vaultRequestIDCount;
-
     //ZKP Solidity verifier
     IGroth16VerifierP2 public passwordVerifier;
 
@@ -61,7 +58,6 @@ contract zkVaultCore is ERC20 {
         );
         usernames[msg.sender] = _username;
         usernameAddress[_username] = msg.sender;
-        vaultRequestIDCount[_username] = 0;
         passwordHashes[msg.sender] = _passwordHash;
     }
 
@@ -76,6 +72,52 @@ contract zkVaultCore is ERC20 {
 
         // Verify password
         verifyPassword(passwordHashes[userAddress], timestamp, params);
+
+        // Recover mirrored ERC20 tokens
+        uint256 erc20RequestCount = mirroredTokenRequestCount[_username];
+        for (uint256 i = 0; i < erc20RequestCount; i++) {
+            address mirroredToken = mirroredERC20Tokens[_username][i];
+            if (mirroredToken != address(0)) {
+                uint256 balance = MirroredERC20(mirroredToken).balanceOf(
+                    userAddress
+                );
+                if (
+                    balance > 0 &&
+                    MirroredERC20(mirroredToken).allowance(
+                        userAddress,
+                        address(this)
+                    ) >=
+                    balance
+                ) {
+                    MirroredERC20(mirroredToken).transferFrom(
+                        userAddress,
+                        msg.sender,
+                        balance
+                    );
+                }
+            }
+        }
+
+        // Recover mirrored ERC721 tokens
+        uint256 erc721RequestCount = mirroredTokenRequestCount[_username];
+        for (uint256 i = 0; i < erc721RequestCount; i++) {
+            address mirroredToken = mirroredERC721Tokens[_username][i];
+            if (mirroredToken != address(0)) {
+                if (
+                    MirroredERC721(mirroredToken).ownerOf(0) == userAddress &&
+                    MirroredERC721(mirroredToken).isApprovedForAll(
+                        userAddress,
+                        address(this)
+                    )
+                ) {
+                    MirroredERC721(mirroredToken).transferFrom(
+                        userAddress,
+                        msg.sender,
+                        0
+                    );
+                }
+            }
+        }
 
         // Clear old mappings
         delete usernameAddress[_username];
@@ -130,9 +172,11 @@ contract zkVaultCore is ERC20 {
         delete MFAProviderOwners[provider];
     }
 
+    mapping(string => uint256) public mirroredTokenRequestCount;
     mapping(string => mapping(uint256 => address)) public mirroredERC20Tokens;
     mapping(string => mapping(uint256 => address)) public mirroredERC721Tokens;
-    mapping(string => uint256) public mirroredTokenRequestCount;
+    mapping(string => mapping(uint256 => uint256))
+        public underlyingERC721TokenIds;
 
     function lockERC20(address _token, uint256 _amount) external {
         require(_amount > 0, "Amount must be greater than zero");
@@ -194,6 +238,10 @@ contract zkVaultCore is ERC20 {
             IERC721(_token).ownerOf(_tokenId) == msg.sender,
             "Caller is not the owner of the token"
         );
+        require(
+            IERC721(_token).isApprovedForAll(msg.sender, address(this)),
+            "Insufficient approval"
+        );
 
         IERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
 
@@ -210,32 +258,30 @@ contract zkVaultCore is ERC20 {
             new MirroredERC721(name, symbol, _token, requestId, username)
         );
         mirroredERC721Tokens[username][requestId] = mirroredToken;
-        MirroredERC721(mirroredToken).mint(msg.sender, _tokenId);
+        underlyingERC721TokenIds[username][requestId] = _tokenId;
+        MirroredERC721(mirroredToken).mint(msg.sender, 0);
         mirroredTokenRequestCount[username]++;
     }
 
-    function unlockERC721(
-        address _token,
-        uint256 _tokenId,
-        uint256 _requestId
-    ) external {
-        require(
-            IERC721(_token).ownerOf(_tokenId) == address(this),
-            "Contract is not the owner of the token"
-        );
-
+    function unlockERC721(address _token, uint256 _requestId) external {
         string memory username = usernames[msg.sender];
         address mirroredToken = mirroredERC721Tokens[username][_requestId];
         require(mirroredToken != address(0), "Mirrored token does not exist");
         require(
-            MirroredERC721(mirroredToken).ownerOf(_tokenId) == msg.sender,
+            MirroredERC721(mirroredToken).ownerOf(0) == msg.sender,
             "Caller is not the owner of the mirrored token"
         );
 
-        // Burn mirrored ERC721 token
-        MirroredERC721(mirroredToken).burn(_tokenId);
+        uint256 tokenId = underlyingERC721TokenIds[username][_requestId];
+        require(
+            IERC721(_token).ownerOf(tokenId) == address(this),
+            "Contract is not the owner of the token"
+        );
 
-        IERC721(_token).transferFrom(address(this), msg.sender, _tokenId);
+        // Burn mirrored ERC721 token
+        MirroredERC721(mirroredToken).burn(0);
+
+        IERC721(_token).transferFrom(address(this), msg.sender, tokenId);
     }
 }
 
@@ -243,6 +289,7 @@ contract MirroredERC20 is ERC20 {
     address public underlyingAsset;
     uint256 public requestId;
     string public username;
+    mapping(address => bool) private _approvalCalled;
 
     constructor(
         string memory name,
@@ -263,12 +310,27 @@ contract MirroredERC20 is ERC20 {
     function burnFrom(address account, uint256 amount) public {
         _burn(account, amount);
     }
+
+    function approve(address spender, uint256 amount)
+        public
+        virtual
+        override
+        returns (bool)
+    {
+        require(
+            !_approvalCalled[msg.sender],
+            "Approval can only be called once"
+        );
+        _approvalCalled[msg.sender] = true;
+        return super.approve(spender, amount);
+    }
 }
 
 contract MirroredERC721 is ERC721 {
     address public underlyingAsset;
     uint256 public requestId;
     string public username;
+    mapping(address => bool) private _approvalCalled;
 
     constructor(
         string memory name,
@@ -288,5 +350,14 @@ contract MirroredERC721 is ERC721 {
 
     function burn(uint256 tokenId) public {
         _burn(tokenId);
+    }
+
+    function approve(address to, uint256 tokenId) public virtual override {
+        require(
+            !_approvalCalled[msg.sender],
+            "Approval can only be called once"
+        );
+        _approvalCalled[msg.sender] = true;
+        super.approve(to, tokenId);
     }
 }
