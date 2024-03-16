@@ -7,7 +7,7 @@ interface IMFA {
         uint256 timestamp;
     }
 
-    function getMFAData(uint256 requestId)
+    function getMFAData(string memory username, uint256 requestId)
         external
         view
         returns (MFAData memory);
