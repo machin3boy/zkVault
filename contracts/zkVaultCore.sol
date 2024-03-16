@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "./multifactor/zkVaultMFA.sol";
-import "./multifactor/ExternalSignerMFA.sol";
-import "./interfaces/IGroth16VerifierP2.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./interfaces/IExternalSignerMFA.sol";
+import "./interfaces/IzkVaultMFA.sol";
 import "./interfaces/IMFA.sol";
 
 /*         88      8b           d8                         88              
@@ -207,7 +206,7 @@ contract zkVaultCore is ERC20 {
         require(_amount > 0 || _tokenId > 0, "Invalid amount or token ID");
         require(_mfaProviders.length > 0, "At least one MFA provider is required");
 
-        _transfer(msg.sender, deployer, _mfaProviders.length * 10**18);
+        _transfer(msg.sender, address(this), _mfaProviders.length * 10**18);
 
         if (_isERC20) {
             require(
@@ -367,7 +366,7 @@ contract zkVaultCore is ERC20 {
         }
 
         if (haszkVaultMFA) {
-            zkVaultMFA(zkVaultMFAAddress).setRequestPasswordHash(
+            IzkVaultMFA(zkVaultMFAAddress).setRequestPasswordHash(
                 username,
                 requestId,
                 _passwordHash
@@ -388,14 +387,14 @@ contract zkVaultCore is ERC20 {
 
         for (uint256 i = 0; i < _mfaProviderData.length; ++i) {
             if (_mfaProviderData[i].providerAddress == zkVaultMFAAddress) {
-                zkVaultMFA(zkVaultMFAAddress).setMFAData(
+                IzkVaultMFA(zkVaultMFAAddress).setMFAData(
                     username,
                     _requestId,
                     _timestamp,
                     _zkpParams
                 );
             } else {
-                ExternalSignerMFA(_mfaProviderData[i].providerAddress).setValue(
+                IExternalSignerMFA(_mfaProviderData[i].providerAddress).setValue(
                     username,
                     _requestId,
                     _timestamp,
