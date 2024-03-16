@@ -15,15 +15,22 @@ contract zkVaultMFA {
         public MFARequestPasswordHashes;
     mapping(string => mapping(uint256 => MFAData)) public MFARequestData;
 
-    constructor(address _passwordVerifier) {
+    address public zkVaultCoreAddress;
+
+    constructor(address _passwordVerifier, address _zkVaultCoreAddress) {
         passwordVerifier = IGroth16VerifierP2(_passwordVerifier);
+        zkVaultCoreAddress = _zkVaultCoreAddress;
     }
 
     function setRequestPasswordHash(
         string memory username,
         uint256 requestId,
         uint256 requestPasswordHash
-    ) public {
+    ) external {
+        require(
+            msg.sender == zkVaultCoreAddress,
+            "Only the zkVaultCore contract can set the password hash"
+        );
         MFARequestPasswordHashes[username][requestId] = requestPasswordHash;
     }
 
