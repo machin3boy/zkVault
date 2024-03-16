@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.24;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IGroth16VerifierP2.sol";
 import "./interfaces/IMFA.sol";
 
@@ -16,6 +17,8 @@ import "./interfaces/IMFA.sol";
 888888888  88   `Y8a     `8'      `"8bbdP"Y8   `"YbbdP'Y8  88    "Y8*/
 
 contract zkVaultCore is ERC20 {
+    using SafeERC20 for IERC20;
+    
     mapping(address => string) public usernames;
     mapping(string => address) public usernameAddress;
     mapping(address => uint256) public passwordHashes;
@@ -64,8 +67,6 @@ contract zkVaultCore is ERC20 {
 
         // Verify password
         verifyPassword(passwordHashes[userAddress], timestamp, params);
-
-        recoverAssetsFromMirroredPool(usernameAddress[_username], msg.sender);
 
         // Clear old mappings
         delete usernameAddress[_username];
@@ -118,223 +119,5 @@ contract zkVaultCore is ERC20 {
         );
         delete MFAProviders[provider];
         delete MFAProviderOwners[provider];
-    }
-
-    struct MirroredERC20Asset {
-        address underlyingAssetAddress;
-        address mirroredTokenAddress;
-        ERC20 mirroredToken;
-    }
-
-    struct MirroredERC721Asset {
-        address underlyingAssetAddress;
-        address mirroredTokenAddress;
-        ERC721 mirroredToken;
-    }
-
-    mapping(string => mapping(uint256 => MirroredERC20Asset))
-        public mirroredERC20Assets;
-    mapping(string => mapping(uint256 => MirroredERC721Asset))
-        public mirroredERC721Assets;
-
-    function lockToken(
-        address _nativeAsset,
-        uint256 _amount,
-        string memory _symbol,
-        bool _isNFT,
-        uint256 _tokenId,
-        uint256 _requestId,
-        address[] memory _MFAProviders
-    ) public {
-        require(
-            mirroredERC20Assets[usernames[msg.sender]][_requestId]
-                .mirroredTokenAddress ==
-                address(0) &&
-                mirroredERC721Assets[usernames[msg.sender]][_requestId]
-                    .mirroredTokenAddress ==
-                address(0),
-            "Mirrored asset already exists"
-        );
-
-        if (!_isNFT) {
-            // Create a new ERC20 token for the mirrored asset
-            ERC20 mirroredToken = new zkVaultMirroredERC20(
-                string(abi.encodePacked("Mirrored ", _symbol)), // Symbol for the mirrored asset
-                string(abi.encodePacked("m", _symbol)), // Name for the mirrored asset
-                _amount,
-                _nativeAsset,
-                address(this)
-            );
-
-            ERC20(_nativeAsset).approve(address(mirroredToken), _amount);
-
-            ERC20(_nativeAsset).transferFrom(
-                msg.sender,
-                address(this),
-                _amount
-            );
-
-            // Store information about the mirrored asset
-            mirroredERC20Assets[usernames[msg.sender]][
-                _requestId
-            ] = MirroredERC20Asset(
-                _nativeAsset,
-                address(mirroredToken),
-                mirroredToken
-            );
-        } else {
-            // Create a new ERC721 token for the mirrored asset
-            ERC721 mirroredToken = new zkVaultMirroredERC721(
-                string(abi.encodePacked("Mirrored ", _symbol)), // Symbol for the mirrored asset
-                string(abi.encodePacked("m", _symbol)), // Name for the mirrored asset
-                _tokenId,
-                _nativeAsset,
-                address(this)
-            );
-
-            ERC721(_nativeAsset).approve(address(mirroredToken), _tokenId);
-
-            ERC721(_nativeAsset).transferFrom(
-                msg.sender,
-                address(this),
-                _tokenId
-            );
-
-            // Store information about the mirrored asset
-            mirroredERC721Assets[usernames[msg.sender]][
-                _requestId
-            ] = MirroredERC721Asset(
-                _nativeAsset,
-                address(mirroredToken),
-                mirroredToken
-            );
-        }
-    }
-
-    function unlockToken(
-        uint256 _amount,
-        uint256 _tokenId,
-        uint256 _requestId
-    ) public {
-        // Retrieve the mirrored ERC20 asset for the user and requestId
-        MirroredERC20Asset storage mirroredERC20Asset = mirroredERC20Assets[
-            usernames[msg.sender]
-        ][_requestId];
-
-        // Retrieve the mirrored ERC721 asset for the user and requestId
-        MirroredERC721Asset storage mirroredERC721Asset = mirroredERC721Assets[
-            usernames[msg.sender]
-        ][_requestId];
-
-        require(
-            mirroredERC20Asset.mirroredTokenAddress != address(0) ||
-                mirroredERC721Asset.mirroredTokenAddress != address(0),
-            "Mirrored asset does not exist"
-        );
-
-        if (mirroredERC20Asset.mirroredTokenAddress != address(0)) {
-            // ERC20 mirrored asset
-            require(
-                mirroredERC20Asset.mirroredToken.balanceOf(msg.sender) >=
-                    _amount,
-                "Insufficient mirrored balance"
-            );
-
-            // Transfer mirrored ERC20 tokens from the sender to the contract
-            mirroredERC20Asset.mirroredToken.transferFrom(
-                msg.sender,
-                address(this),
-                _amount
-            );
-
-            // Transfer ERC20 tokens back to the sender
-            ERC20(mirroredERC20Asset.underlyingAssetAddress).transfer(
-                msg.sender,
-                _amount
-            );
-        } else {
-            // ERC721 mirrored asset
-            require(
-                mirroredERC721Asset.mirroredToken.ownerOf(_tokenId) ==
-                    msg.sender,
-                "Not token owner"
-            );
-
-            // Transfer ERC721 token back to the sender
-            mirroredERC721Asset.mirroredToken.transferFrom(
-                msg.sender,
-                address(this),
-                _tokenId
-            );
-
-            // Transfer ERC721 token back to the sender
-            ERC721(mirroredERC721Asset.underlyingAssetAddress).transferFrom(
-                address(this),
-                msg.sender,
-                _tokenId
-            );
-        }
-    }
-
-    function recoverAssetsFromMirroredPool(
-        address _oldAddress,
-        address _newAddress
-    ) public {
-        // Retrieve mirrored ERC20 assets for the old username
-        for (
-            uint256 i = 0;
-            i < vaultRequestIDCount[usernames[_oldAddress]];
-            i++
-        ) {
-            MirroredERC20Asset storage mirroredERC20Asset = mirroredERC20Assets[
-                usernames[_oldAddress]
-            ][i];
-            if (mirroredERC20Asset.mirroredTokenAddress != address(0)) {
-                // Transfer ERC20 tokens from old address to new address
-                uint256 balance = mirroredERC20Asset.mirroredToken.balanceOf(
-                    _oldAddress
-                );
-                if (balance > 0) {
-                    // Transfer mirrored ERC20 tokens from the sender to the contract
-                    mirroredERC20Asset.mirroredToken.transferFrom(
-                        _oldAddress,
-                        _newAddress,
-                        balance
-                    );
-                }
-            }
-        }
-    }
-}
-
-contract zkVaultMirroredERC20 is ERC20 {
-    address public underlyingAssetAddress;
-
-    constructor(
-        string memory _name,
-        string memory _symbol,
-        uint256 _supply,
-        address _underlyingAssetAddress,
-        address _owner
-    ) ERC20(_name, _symbol) {
-        _mint(msg.sender, _supply);
-        underlyingAssetAddress = _underlyingAssetAddress;
-        approve(_owner, _supply);
-    }
-}
-
-contract zkVaultMirroredERC721 is ERC721 {
-    address public underlyingAssetAddress;
-
-    constructor(
-        string memory _name,
-        string memory _symbol,
-        uint256 _tokenId,
-        address _underlyingAssetAddress,
-        address _owner
-    ) ERC721(_name, _symbol) {
-        _mint(msg.sender, _tokenId);
-        underlyingAssetAddress = _underlyingAssetAddress;
-        approve(_owner, _tokenId);
     }
 }
