@@ -210,7 +210,14 @@ contract zkVaultCore is ERC20 {
             abi.encodePacked("m", ERC20(_token).symbol())
         );
         address mirroredToken = address(
-            new MirroredERC20(name, symbol, _token, requestId, username)
+            new MirroredERC20(
+                name,
+                symbol,
+                _token,
+                requestId,
+                username,
+                address(this)
+            )
         );
         mirroredERC20Tokens[username][requestId] = mirroredToken;
         MirroredERC20(mirroredToken).mint(msg.sender, _amount);
@@ -291,7 +298,14 @@ contract zkVaultCore is ERC20 {
             abi.encodePacked("m", ERC721(_token).symbol())
         );
         address mirroredToken = address(
-            new MirroredERC721(name, symbol, _token, requestId, username)
+            new MirroredERC721(
+                name,
+                symbol,
+                _token,
+                requestId,
+                username,
+                address(this)
+            )
         );
         mirroredERC721Tokens[username][requestId] = mirroredToken;
         underlyingERC721TokenIds[username][requestId] = _tokenId;
@@ -349,24 +363,29 @@ contract MirroredERC20 is ERC20 {
     uint256 public requestId;
     string public username;
     mapping(address => bool) private _approvalCalled;
+    address public owner;
 
     constructor(
         string memory name,
         string memory symbol,
         address _underlyingAsset,
         uint256 _requestId,
-        string memory _username
+        string memory _username,
+        address _owner
     ) ERC20(name, symbol) {
         underlyingAsset = _underlyingAsset;
         requestId = _requestId;
         username = _username;
+        owner = _owner;
     }
 
     function mint(address to, uint256 amount) public {
+        require(msg.sender == owner, "Only the owner can mint tokens");
         _mint(to, amount);
     }
 
     function burnFrom(address account, uint256 amount) public {
+        require(msg.sender == owner, "Only the owner can burn tokens");
         _burn(account, amount);
     }
 
@@ -390,24 +409,29 @@ contract MirroredERC721 is ERC721 {
     uint256 public requestId;
     string public username;
     mapping(address => bool) private _approvalCalled;
+    address public owner;
 
     constructor(
         string memory name,
         string memory symbol,
         address _underlyingAsset,
         uint256 _requestId,
-        string memory _username
+        string memory _username,
+        address _owner
     ) ERC721(name, symbol) {
         underlyingAsset = _underlyingAsset;
         requestId = _requestId;
         username = _username;
+        owner = _owner;
     }
 
     function mint(address to, uint256 tokenId) public {
+        require(msg.sender == owner, "Only the owner can mint tokens");
         _safeMint(to, tokenId);
     }
 
     function burn(uint256 tokenId) public {
+        require(msg.sender == owner, "Only the owner can burn tokens");
         _burn(tokenId);
     }
 
