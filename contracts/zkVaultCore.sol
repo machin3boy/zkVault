@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "./multifactor/zkVaultMFA.sol";
+import "./multifactor/ExternalSignerMFA.sol";
 import "./interfaces/IGroth16VerifierP2.sol";
 import "./interfaces/IMFA.sol";
 
@@ -35,14 +37,24 @@ contract zkVaultCore is ERC20 {
         owner = msg.sender;
     }
 
-    function releaseOwnership() public {
-        require(msg.sender == owner, "Not owner");
-        owner = address(0);
+    address public zkVaultMFAAddress;
+
+    function setzkVaultMFAAddress(address _zkVaultMFAAddress) external {
+        require(
+            msg.sender == owner,
+            "Only the owner can set the zkVaultMFA address"
+        );
+        zkVaultMFAAddress = _zkVaultMFAAddress;
     }
 
     function setPasswordVerifier(address _passwordVerifier) public {
         require(msg.sender == owner, "Not owner");
         passwordVerifier = IGroth16VerifierP2(_passwordVerifier);
+    }
+
+    function releaseOwnership() public {
+        require(msg.sender == owner, "Not owner");
+        owner = address(0);
     }
 
     function vaultTokensFaucet() public {
@@ -183,133 +195,77 @@ contract zkVaultCore is ERC20 {
     mapping(string => mapping(uint256 => uint256))
         public underlyingERC721TokenIds;
 
-    function lockERC20(
+    function lockAsset(
         address _token,
         uint256 _amount,
-        address[] memory _mfaProviders
-    ) public {
-        require(_amount > 0, "Amount must be greater than zero");
-        require(
-            IERC20(_token).balanceOf(msg.sender) >= _amount,
-            "Insufficient balance"
-        );
-        require(
-            IERC20(_token).allowance(msg.sender, address(this)) >= _amount,
-            "Insufficient allowance"
-        );
-
-        IERC20(_token).transferFrom(msg.sender, address(this), _amount);
-
-        // Mint mirrored ERC20 tokens
-        string memory username = usernames[msg.sender];
-        uint256 requestId = mirroredTokenRequestCount[username];
-        string memory name = string(
-            abi.encodePacked("Mirrored ", ERC20(_token).name())
-        );
-        string memory symbol = string(
-            abi.encodePacked("m", ERC20(_token).symbol())
-        );
-        address mirroredToken = address(
-            new MirroredERC20(
-                name,
-                symbol,
-                _token,
-                requestId,
-                username,
-                address(this)
-            )
-        );
-        mirroredERC20Tokens[username][requestId] = mirroredToken;
-        MirroredERC20(mirroredToken).mint(msg.sender, _amount);
-        mirroredTokenRequestCount[username]++;
-
-        for (uint256 i = 0; i < _mfaProviders.length; i++) {
-            vaultRequestMFAProviders[username][requestId][i] = IMFA(
-                _mfaProviders[i]
-            );
-        }
-        vaultRequestMFAProviderCount[username][requestId] = _mfaProviders
-            .length;
-    }
-
-    function unlockERC20(
-        address _token,
-        uint256 _amount,
-        uint256 _requestId
-    ) public {
-        require(_amount > 0, "Amount must be greater than zero");
-        require(
-            IERC20(_token).balanceOf(address(this)) >= _amount,
-            "Insufficient balance in the contract"
-        );
-
-        string memory username = usernames[msg.sender];
-        uint256 timeLimit = 120; // 2 minutes
-        for (
-            uint256 i = 0;
-            i < vaultRequestMFAProviderCount[username][_requestId];
-            i++
-        ) {
-            IMFA.MFAData memory mfaData = vaultRequestMFAProviders[username][
-                _requestId
-            ][i].getMFAData(username, _requestId);
-            require(mfaData.success, "MFA verification failed");
-            require(
-                mfaData.timestamp >= block.timestamp - timeLimit,
-                "MFA data expired"
-            );
-        }
-        address mirroredToken = mirroredERC20Tokens[username][_requestId];
-        require(mirroredToken != address(0), "Mirrored token does not exist");
-        require(
-            MirroredERC20(mirroredToken).balanceOf(msg.sender) >= _amount,
-            "Insufficient mirrored token balance"
-        );
-
-        // Burn mirrored ERC20 tokens
-        MirroredERC20(mirroredToken).burnFrom(msg.sender, _amount);
-
-        IERC20(_token).transfer(msg.sender, _amount);
-    }
-
-    function lockERC721(
-        address _token,
         uint256 _tokenId,
+        bool _isERC20,
         address[] memory _mfaProviders
     ) public {
-        require(
-            IERC721(_token).ownerOf(_tokenId) == msg.sender,
-            "Caller is not the owner of the token"
-        );
-        require(
-            IERC721(_token).isApprovedForAll(msg.sender, address(this)),
-            "Insufficient approval"
-        );
+        require(_amount > 0 || _tokenId > 0, "Invalid amount or token ID");
 
-        IERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
+        if (_isERC20) {
+            require(
+                IERC20(_token).balanceOf(msg.sender) >= _amount,
+                "Insufficient balance"
+            );
+            require(
+                IERC20(_token).allowance(msg.sender, address(this)) >= _amount,
+                "Insufficient allowance"
+            );
+            IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+        } else {
+            require(
+                IERC721(_token).ownerOf(_tokenId) == msg.sender,
+                "Caller is not the owner of the token"
+            );
+            IERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
+        }
 
-        // Mint mirrored ERC721 token
         string memory username = usernames[msg.sender];
         uint256 requestId = mirroredTokenRequestCount[username];
-        string memory name = string(
-            abi.encodePacked("Mirrored ", ERC721(_token).name())
-        );
-        string memory symbol = string(
-            abi.encodePacked("m", ERC721(_token).symbol())
-        );
-        address mirroredToken = address(
-            new MirroredERC721(
-                name,
-                symbol,
-                _token,
-                requestId,
-                username,
-                address(this)
-            )
-        );
-        mirroredERC721Tokens[username][requestId] = mirroredToken;
-        underlyingERC721TokenIds[username][requestId] = _tokenId;
-        MirroredERC721(mirroredToken).mint(msg.sender, 0);
+
+        if (_isERC20) {
+            string memory name = string(
+                abi.encodePacked("Mirrored ", ERC20(_token).name())
+            );
+            string memory symbol = string(
+                abi.encodePacked("m", ERC20(_token).symbol())
+            );
+            address mirroredToken = address(
+                new MirroredERC20(
+                    name,
+                    symbol,
+                    _token,
+                    requestId,
+                    username,
+                    address(this)
+                )
+            );
+            mirroredERC20Tokens[username][requestId] = mirroredToken;
+            MirroredERC20(mirroredToken).mint(msg.sender, _amount);
+        } else {
+            string memory name = string(
+                abi.encodePacked("Mirrored ", ERC721(_token).name())
+            );
+            string memory symbol = string(
+                abi.encodePacked("m", ERC721(_token).symbol())
+            );
+            address mirroredToken = address(
+                new MirroredERC721(
+                    name,
+                    symbol,
+                    _token,
+                    requestId,
+                    username,
+                    address(this)
+                )
+            );
+            mirroredERC721Tokens[username][requestId] = mirroredToken;
+            underlyingERC721TokenIds[username][requestId] = _tokenId;
+            MirroredERC721(mirroredToken).mint(msg.sender, 0);
+        }
+
         mirroredTokenRequestCount[username]++;
 
         for (uint256 i = 0; i < _mfaProviders.length; i++) {
@@ -321,9 +277,15 @@ contract zkVaultCore is ERC20 {
             .length;
     }
 
-    function unlockERC721(address _token, uint256 _requestId) public {
+    function unlockAsset(
+        address _token,
+        uint256 _amount,
+        uint256 _requestId,
+        bool _isERC20
+    ) public {
         string memory username = usernames[msg.sender];
         uint256 timeLimit = 120; // 2 minutes
+
         for (
             uint256 i = 0;
             i < vaultRequestMFAProviderCount[username][_requestId];
@@ -338,23 +300,109 @@ contract zkVaultCore is ERC20 {
                 "MFA data expired"
             );
         }
-        address mirroredToken = mirroredERC721Tokens[username][_requestId];
-        require(mirroredToken != address(0), "Mirrored token does not exist");
-        require(
-            MirroredERC721(mirroredToken).ownerOf(0) == msg.sender,
-            "Caller is not the owner of the mirrored token"
-        );
 
-        uint256 tokenId = underlyingERC721TokenIds[username][_requestId];
-        require(
-            IERC721(_token).ownerOf(tokenId) == address(this),
-            "Contract is not the owner of the token"
-        );
+        if (_isERC20) {
+            address mirroredToken = mirroredERC20Tokens[username][_requestId];
+            require(
+                mirroredToken != address(0),
+                "Mirrored token does not exist"
+            );
+            require(
+                MirroredERC20(mirroredToken).balanceOf(msg.sender) >= _amount,
+                "Insufficient mirrored token balance"
+            );
+            require(
+                IERC20(_token).balanceOf(address(this)) >= _amount,
+                "Insufficient balance in the contract"
+            );
 
-        // Burn mirrored ERC721 token
-        MirroredERC721(mirroredToken).burn(0);
+            MirroredERC20(mirroredToken).burnFrom(msg.sender, _amount);
+            IERC20(_token).transfer(msg.sender, _amount);
+        } else {
+            address mirroredToken = mirroredERC721Tokens[username][_requestId];
+            require(
+                mirroredToken != address(0),
+                "Mirrored token does not exist"
+            );
+            require(
+                MirroredERC721(mirroredToken).ownerOf(0) == msg.sender,
+                "Caller is not the owner of the mirrored token"
+            );
 
-        IERC721(_token).transferFrom(address(this), msg.sender, tokenId);
+            uint256 tokenId = underlyingERC721TokenIds[username][_requestId];
+            require(
+                IERC721(_token).ownerOf(tokenId) == address(this),
+                "Contract is not the owner of the token"
+            );
+
+            MirroredERC721(mirroredToken).burn(0);
+            IERC721(_token).transferFrom(address(this), msg.sender, tokenId);
+        }
+    }
+
+    function batchLockAndSetMFA(
+        address _token,
+        uint256 _amount,
+        uint256 _tokenId,
+        bool _isERC20,
+        address[] memory _mfaProviders,
+        uint256 _passwordHash
+    ) external {
+        string memory username = usernames[msg.sender];
+        uint256 requestId = mirroredTokenRequestCount[username];
+
+        lockAsset(_token, _amount, _tokenId, _isERC20, _mfaProviders);
+
+        bool haszkVaultMFA = false;
+        for (uint256 i = 0; i < _mfaProviders.length; i++) {
+            if (_mfaProviders[i] == zkVaultMFAAddress) {
+                haszkVaultMFA = true;
+                break;
+            }
+        }
+
+        if (haszkVaultMFA) {
+            zkVaultMFA(zkVaultMFAAddress).setRequestPasswordHash(
+                username,
+                requestId,
+                _passwordHash
+            );
+        }
+    }
+
+    function batchUnlockAndVerifyMFA(
+        address _token,
+        uint256 _amount,
+        uint256 _requestId,
+        bool _isERC20,
+        uint256 _timestamp,
+        ProofParameters memory _zkpParams,
+        MFAProviderData[] memory _mfaProviderData
+    ) external {
+        string memory username = usernames[msg.sender];
+
+        for (uint256 i = 0; i < _mfaProviderData.length; i++) {
+            if (_mfaProviderData[i].providerAddress == zkVaultMFAAddress) {
+                zkVaultMFA(zkVaultMFAAddress).setMFAData(
+                    username,
+                    _requestId,
+                    _timestamp,
+                    _zkpParams
+                );
+            } else {
+                ExternalSignerMFA(_mfaProviderData[i].providerAddress).setValue(
+                    username,
+                    _requestId,
+                    _timestamp,
+                    _mfaProviderData[i].message,
+                    _mfaProviderData[i].v,
+                    _mfaProviderData[i].r,
+                    _mfaProviderData[i].s
+                );
+            }
+        }
+
+        unlockAsset(_token, _amount, _requestId, _isERC20);
     }
 }
 
