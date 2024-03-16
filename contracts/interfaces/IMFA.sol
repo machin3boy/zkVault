@@ -12,3 +12,11 @@ interface IMFA {
         view
         returns (MFAData memory);
 }
+
+struct MFAProviderData {
+    address providerAddress;
+    string message;
+    uint8 v;
+    bytes32 r;
+    bytes32 s;
+}

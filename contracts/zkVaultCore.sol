@@ -187,7 +187,7 @@ contract zkVaultCore is ERC20 {
         address _token,
         uint256 _amount,
         address[] memory _mfaProviders
-    ) external {
+    ) public {
         require(_amount > 0, "Amount must be greater than zero");
         require(
             IERC20(_token).balanceOf(msg.sender) >= _amount,
@@ -236,7 +236,7 @@ contract zkVaultCore is ERC20 {
         address _token,
         uint256 _amount,
         uint256 _requestId
-    ) external {
+    ) public {
         require(_amount > 0, "Amount must be greater than zero");
         require(
             IERC20(_token).balanceOf(address(this)) >= _amount,
@@ -276,7 +276,7 @@ contract zkVaultCore is ERC20 {
         address _token,
         uint256 _tokenId,
         address[] memory _mfaProviders
-    ) external {
+    ) public {
         require(
             IERC721(_token).ownerOf(_tokenId) == msg.sender,
             "Caller is not the owner of the token"
@@ -321,7 +321,7 @@ contract zkVaultCore is ERC20 {
             .length;
     }
 
-    function unlockERC721(address _token, uint256 _requestId) external {
+    function unlockERC721(address _token, uint256 _requestId) public {
         string memory username = usernames[msg.sender];
         uint256 timeLimit = 120; // 2 minutes
         for (
