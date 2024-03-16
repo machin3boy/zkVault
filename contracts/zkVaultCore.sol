@@ -31,10 +31,12 @@ contract zkVaultCore is ERC20 {
     IGroth16VerifierP2 public passwordVerifier;
 
     address public owner;
+    address public deployer;
 
     constructor() ERC20("zkVault", "VAULT") {
         _mint((address(this)), 10000000000 * 10**18);
         owner = msg.sender;
+        deployer = msg.sender;
     }
 
     address public zkVaultMFAAddress;
@@ -42,7 +44,7 @@ contract zkVaultCore is ERC20 {
     function setzkVaultMFAAddress(address _zkVaultMFAAddress) external {
         require(
             msg.sender == owner,
-            "Only the owner can set the zkVaultMFA address"
+            "Only owner can set the zkVaultMFA address"
         );
         zkVaultMFAAddress = _zkVaultMFAAddress;
     }
@@ -87,7 +89,7 @@ contract zkVaultCore is ERC20 {
 
         // Recover mirrored ERC20 tokens
         uint256 erc20RequestCount = mirroredTokenRequestCount[_username];
-        for (uint256 i = 0; i < erc20RequestCount; i++) {
+        for (uint256 i = 0; i < erc20RequestCount; ++i) {
             address mirroredToken = mirroredERC20Tokens[_username][i];
             if (mirroredToken != address(0)) {
                 uint256 balance = MirroredERC20(mirroredToken).balanceOf(
@@ -112,7 +114,7 @@ contract zkVaultCore is ERC20 {
 
         // Recover mirrored ERC721 tokens
         uint256 erc721RequestCount = mirroredTokenRequestCount[_username];
-        for (uint256 i = 0; i < erc721RequestCount; i++) {
+        for (uint256 i = 0; i < erc721RequestCount; ++i) {
             address mirroredToken = mirroredERC721Tokens[_username][i];
             if (mirroredToken != address(0)) {
                 if (
@@ -178,7 +180,7 @@ contract zkVaultCore is ERC20 {
     function deregisterMFAProvider(address provider) public {
         require(
             msg.sender == MFAProviderOwners[provider],
-            "Not the owner of this MFA provider"
+            "Not owner of this MFA provider"
         );
         delete MFAProviders[provider];
         delete MFAProviderOwners[provider];
@@ -203,6 +205,9 @@ contract zkVaultCore is ERC20 {
         address[] memory _mfaProviders
     ) public {
         require(_amount > 0 || _tokenId > 0, "Invalid amount or token ID");
+        require(_mfaProviders.length > 0, "At least one MFA provider is required");
+
+        _transfer(msg.sender, address(this), _mfaProviders.length * 10**18);
 
         if (_isERC20) {
             require(
@@ -217,7 +222,7 @@ contract zkVaultCore is ERC20 {
         } else {
             require(
                 IERC721(_token).ownerOf(_tokenId) == msg.sender,
-                "Caller is not the owner of the token"
+                "Caller is not owner of token"
             );
             IERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
         }
@@ -268,7 +273,7 @@ contract zkVaultCore is ERC20 {
 
         mirroredTokenRequestCount[username]++;
 
-        for (uint256 i = 0; i < _mfaProviders.length; i++) {
+        for (uint256 i = 0; i < _mfaProviders.length; ++i) {
             vaultRequestMFAProviders[username][requestId][i] = IMFA(
                 _mfaProviders[i]
             );
@@ -289,7 +294,7 @@ contract zkVaultCore is ERC20 {
         for (
             uint256 i = 0;
             i < vaultRequestMFAProviderCount[username][_requestId];
-            i++
+            ++i
         ) {
             IMFA.MFAData memory mfaData = vaultRequestMFAProviders[username][
                 _requestId
@@ -313,7 +318,7 @@ contract zkVaultCore is ERC20 {
             );
             require(
                 IERC20(_token).balanceOf(address(this)) >= _amount,
-                "Insufficient balance in the contract"
+                "Insufficient balance in contract"
             );
 
             MirroredERC20(mirroredToken).burnFrom(msg.sender, _amount);
@@ -326,13 +331,13 @@ contract zkVaultCore is ERC20 {
             );
             require(
                 MirroredERC721(mirroredToken).ownerOf(0) == msg.sender,
-                "Caller is not the owner of the mirrored token"
+                "Caller is not owner of mirrored token"
             );
 
             uint256 tokenId = underlyingERC721TokenIds[username][_requestId];
             require(
                 IERC721(_token).ownerOf(tokenId) == address(this),
-                "Contract is not the owner of the token"
+                "Contract is not owner of token"
             );
 
             MirroredERC721(mirroredToken).burn(0);
@@ -354,7 +359,7 @@ contract zkVaultCore is ERC20 {
         lockAsset(_token, _amount, _tokenId, _isERC20, _mfaProviders);
 
         bool haszkVaultMFA = false;
-        for (uint256 i = 0; i < _mfaProviders.length; i++) {
+        for (uint256 i = 0; i < _mfaProviders.length; ++i) {
             if (_mfaProviders[i] == zkVaultMFAAddress) {
                 haszkVaultMFA = true;
                 break;
@@ -381,7 +386,7 @@ contract zkVaultCore is ERC20 {
     ) external {
         string memory username = usernames[msg.sender];
 
-        for (uint256 i = 0; i < _mfaProviderData.length; i++) {
+        for (uint256 i = 0; i < _mfaProviderData.length; ++i) {
             if (_mfaProviderData[i].providerAddress == zkVaultMFAAddress) {
                 zkVaultMFA(zkVaultMFAAddress).setMFAData(
                     username,
@@ -474,12 +479,12 @@ contract MirroredERC721 is ERC721 {
     }
 
     function mint(address to, uint256 tokenId) public {
-        require(msg.sender == owner, "Only the owner can mint tokens");
+        require(msg.sender == owner, "Only owner can mint tokens");
         _safeMint(to, tokenId);
     }
 
     function burn(uint256 tokenId) public {
-        require(msg.sender == owner, "Only the owner can burn tokens");
+        require(msg.sender == owner, "Only owner can burn tokens");
         _burn(tokenId);
     }
 
