@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./interfaces/IGroth16VerifierP2.sol";
 import "./interfaces/IMFA.sol";
 
@@ -15,7 +16,7 @@ import "./interfaces/IMFA.sol";
 ,d8"       88`"Yba,     `888'     88,    ,88  "8a,   ,a88  88    88,       
 888888888  88   `Y8a     `8'      `"8bbdP"Y8   `"YbbdP'Y8  88    "Y8*/
 
-contract zkVaultCore is ERC20 {    
+contract zkVaultCore is ERC20 {
     mapping(address => string) public usernames;
     mapping(string => address) public usernameAddress;
     mapping(address => uint256) public passwordHashes;
@@ -29,11 +30,21 @@ contract zkVaultCore is ERC20 {
     //ZKP Solidity verifier
     IGroth16VerifierP2 public passwordVerifier;
 
-    uint256 private constant tokenSupply = 10000000000 * 10**18;
+    address public owner;
 
-    constructor(address _passwordVerifier) ERC20("zkVault", "VAULT") {
-        _mint((address(this)), tokenSupply);
-        // passwordVerifier = IGroth16VerifierP2(_passwordVerifier);
+    constructor() ERC20("zkVault", "VAULT") {
+        _mint((address(this)), 10000000000 * 10**18);
+        owner = msg.sender;
+    }
+
+    function releaseOnwership() public {
+        require(msg.sender == owner, "Not owner");
+        owner = address(0);
+    }
+
+    function setPasswordVerifier(address _passwordVerifier) public {
+        require(msg.sender == owner, "Not owner");
+        passwordVerifier = IGroth16VerifierP2(_passwordVerifier);
     }
 
     function vaultTokensFaucet() public {
@@ -120,16 +131,41 @@ contract zkVaultCore is ERC20 {
 
     function lockERC20(address _token, uint256 _amount) external {
         require(_amount > 0, "Amount must be greater than zero");
-        require(IERC20(_token).balanceOf(msg.sender) >= _amount, "Insufficient balance");
-        require(IERC20(_token).allowance(msg.sender, address(this)) >= _amount, "Insufficient allowance");
+        require(
+            IERC20(_token).balanceOf(msg.sender) >= _amount,
+            "Insufficient balance"
+        );
+        require(
+            IERC20(_token).allowance(msg.sender, address(this)) >= _amount,
+            "Insufficient allowance"
+        );
 
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
     }
 
     function unlockERC20(address _token, uint256 _amount) external {
         require(_amount > 0, "Amount must be greater than zero");
-        require(IERC20(_token).balanceOf(address(this)) >= _amount, "Insufficient balance in the contract");
+        require(
+            IERC20(_token).balanceOf(address(this)) >= _amount,
+            "Insufficient balance in the contract"
+        );
 
         IERC20(_token).transfer(msg.sender, _amount);
+    }
+
+    function lockERC721(address _token, uint256 _tokenId) external {
+        require(
+            IERC721(_token).ownerOf(_tokenId) == msg.sender,
+            "Caller is not the owner of the token"
+        );
+        IERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
+    }
+
+    function unlockERC721(address _token, uint256 _tokenId) external {
+        require(
+            IERC721(_token).ownerOf(_tokenId) == address(this),
+            "Contract is not the owner of the token"
+        );
+        IERC721(_token).transferFrom(address(this), msg.sender, _tokenId);
     }
 }
