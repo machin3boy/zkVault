@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
 import "../interfaces/IGroth16VerifierP2.sol";
@@ -10,22 +11,25 @@ contract zkVaultMFA {
         uint256 timestamp;
     }
 
-    mapping(uint256 => uint256) public MFARequestPasswordHashes;
-    mapping(uint256 => MFAData) public MFARequestData;
+    mapping(string => mapping(uint256 => uint256))
+        public MFARequestPasswordHashes;
+    mapping(string => mapping(uint256 => MFAData)) public MFARequestData;
 
     constructor(address _passwordVerifier) {
         passwordVerifier = IGroth16VerifierP2(_passwordVerifier);
     }
 
     function setRequestPasswordHash(
-        uint256 _requestID,
-        uint256 _requestPasswordHash
+        string memory username,
+        uint256 requestId,
+        uint256 requestPasswordHash
     ) public {
-        MFARequestPasswordHashes[_requestID] = _requestPasswordHash;
+        MFARequestPasswordHashes[username][requestId] = requestPasswordHash;
     }
 
     function setMFAData(
-        uint256 _requestID,
+        string memory username,
+        uint256 requestId,
         uint256 timestamp,
         ProofParameters calldata params
     ) external {
@@ -42,21 +46,21 @@ contract zkVaultMFA {
         uint256[2] memory pubSignals = [params.pubSignals0, params.pubSignals1];
 
         require(
-            pubSignals[0] == MFARequestPasswordHashes[_requestID] &&
+            pubSignals[0] == MFARequestPasswordHashes[username][requestId] &&
                 pubSignals[1] == timestamp &&
                 passwordVerifier.verifyProof(pA, pB, pC, pubSignals),
             "ZKP verification failed."
         );
 
-        MFARequestData[_requestID].success = true;
-        MFARequestData[_requestID].timestamp = block.timestamp;
+        MFARequestData[username][requestId].success = true;
+        MFARequestData[username][requestId].timestamp = block.timestamp;
     }
 
-    function getMFAData(uint256 _requestID)
+    function getMFAData(string memory username, uint256 requestId)
         external
         view
         returns (MFAData memory)
     {
-        return MFARequestData[_requestID];
+        return MFARequestData[username][requestId];
     }
 }

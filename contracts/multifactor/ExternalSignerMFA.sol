@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
 contract ExternalSignerMFA {
@@ -8,16 +9,17 @@ contract ExternalSignerMFA {
         uint256 timestamp;
     }
 
-    mapping(uint256 => MFAData) public MFARequestData;
+    mapping(string => mapping(uint256 => MFAData)) public MFARequestData;
 
     constructor(address _externalSigner) {
         externalSigner = _externalSigner;
     }
 
     function setValue(
+        string memory username,
         uint256 requestId,
         uint256 timestamp,
-        string memory message, // Accept a string message
+        string memory message,
         uint8 v,
         bytes32 r,
         bytes32 s
@@ -26,16 +28,17 @@ contract ExternalSignerMFA {
         require(timestamp <= block.timestamp);
         require(timestamp >= block.timestamp - timeLimit);
 
-        // Convert the message back to requestId, success, and timestamp
         (
+            string memory parsedUsername,
             uint256 parsedRequestId,
             bool parsedSuccess,
             uint256 parsedTimestamp
         ) = parseMessage(message);
 
-        // Check if the parsed values match the provided values
         require(
-            parsedRequestId == requestId &&
+            keccak256(abi.encodePacked(parsedUsername)) ==
+                keccak256(abi.encodePacked(username)) &&
+                parsedRequestId == requestId &&
                 parsedSuccess == true &&
                 parsedTimestamp == timestamp,
             "Invalid message"
@@ -47,16 +50,16 @@ contract ExternalSignerMFA {
             "Invalid signature"
         );
 
-        MFARequestData[requestId].success = true;
-        MFARequestData[requestId].timestamp = block.timestamp;
+        MFARequestData[username][requestId].success = true;
+        MFARequestData[username][requestId].timestamp = block.timestamp;
     }
 
-    function getMFAData(uint256 _requestID)
+    function getMFAData(string memory username, uint256 requestId)
         external
         view
         returns (MFAData memory)
     {
-        return MFARequestData[_requestID];
+        return MFARequestData[username][requestId];
     }
 
     // Helper function to parse the concatenated message
@@ -64,6 +67,7 @@ contract ExternalSignerMFA {
         public
         pure
         returns (
+            string memory,
             uint256,
             bool,
             uint256
@@ -72,42 +76,64 @@ contract ExternalSignerMFA {
         bytes memory messageBytes = bytes(message);
         uint256 index = 0;
 
+        // Parse username
+        string memory username = parseString(messageBytes, index);
+        index += bytes(username).length + 1; // Skip the '-'
+
         // Parse requestId
-        uint256 requestId;
-        while (index < messageBytes.length && messageBytes[index] != "-") {
-            requestId =
-                requestId *
-                10 +
-                uint256(uint8(messageBytes[index])) -
-                48;
-            index++;
-        }
-        index++; // Skip the '-'
+        uint256 requestId = parseUint(messageBytes, index);
+        index += getDigitsCount(requestId) + 1; // Skip the '-'
 
         // Parse success
-        bool success;
-        if (messageBytes[index] == "t") {
-            success = true;
-        } else {
-            success = false;
-        }
-        while (index < messageBytes.length && messageBytes[index] != "-") {
-            index++; // Skip until the next '-'
-        }
-        index++; // Skip the '-'
+        bool success = messageBytes[index] == "t";
+        index += 2; // Skip the success value and the '-'
 
         // Parse timestamp
-        uint256 timestamp;
-        while (index < messageBytes.length) {
-            timestamp =
-                timestamp *
-                10 +
-                uint256(uint8(messageBytes[index])) -
-                48;
+        uint256 timestamp = parseUint(messageBytes, index);
+
+        return (username, requestId, success, timestamp);
+    }
+
+    // Helper function to parse a string from bytes
+    function parseString(bytes memory data, uint256 startIndex)
+        internal
+        pure
+        returns (string memory)
+    {
+        uint256 endIndex = startIndex;
+        while (endIndex < data.length && data[endIndex] != "-") {
+            endIndex++;
+        }
+        bytes memory stringBytes = new bytes(endIndex - startIndex);
+        for (uint256 i = startIndex; i < endIndex; i++) {
+            stringBytes[i - startIndex] = data[i];
+        }
+        return string(stringBytes);
+    }
+
+    // Helper function to parse a uint256 from bytes
+    function parseUint(bytes memory data, uint256 startIndex)
+        internal
+        pure
+        returns (uint256)
+    {
+        uint256 value = 0;
+        uint256 index = startIndex;
+        while (index < data.length && data[index] != "-") {
+            value = value * 10 + uint256(uint8(data[index])) - 48;
             index++;
         }
+        return value;
+    }
 
-        return (requestId, success, timestamp);
+    // Helper function to get the count of digits in a uint256
+    function getDigitsCount(uint256 value) internal pure returns (uint256) {
+        uint256 count = 0;
+        while (value != 0) {
+            count++;
+            value /= 10;
+        }
+        return count;
     }
 
     function returnTimestamp() public view returns (uint256) {
@@ -124,7 +150,6 @@ contract ExternalSignerMFA {
     }
 
     function hashMessage(string memory message) public pure returns (bytes32) {
-        // Prefix the message according to Ethereum signature standard
         string memory prefix = "\x19Ethereum Signed Message:\n";
         uint256 length = bytes(message).length;
         string memory messageLength = uintToString(length);
@@ -132,7 +157,6 @@ contract ExternalSignerMFA {
             abi.encodePacked(prefix, messageLength, message)
         );
 
-        // Hash the prefixed message using Keccak-256
         return keccak256(abi.encodePacked(prefixedMessage));
     }
 
