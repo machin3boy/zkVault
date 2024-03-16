@@ -31,7 +31,6 @@ contract ExternalSignerMFA {
         (
             string memory parsedUsername,
             uint256 parsedRequestId,
-            bool parsedSuccess,
             uint256 parsedTimestamp
         ) = parseMessage(message);
 
@@ -39,7 +38,6 @@ contract ExternalSignerMFA {
             keccak256(abi.encodePacked(parsedUsername)) ==
                 keccak256(abi.encodePacked(username)) &&
                 parsedRequestId == requestId &&
-                parsedSuccess == true &&
                 parsedTimestamp == timestamp,
             "Invalid message"
         );
@@ -69,7 +67,6 @@ contract ExternalSignerMFA {
         returns (
             string memory,
             uint256,
-            bool,
             uint256
         )
     {
@@ -84,14 +81,10 @@ contract ExternalSignerMFA {
         uint256 requestId = parseUint(messageBytes, index);
         index += getDigitsCount(requestId) + 1; // Skip the '-'
 
-        // Parse success
-        bool success = messageBytes[index] == "t";
-        index += 2; // Skip the success value and the '-'
-
         // Parse timestamp
         uint256 timestamp = parseUint(messageBytes, index);
 
-        return (username, requestId, success, timestamp);
+        return (username, requestId, timestamp);
     }
 
     // Helper function to parse a string from bytes
