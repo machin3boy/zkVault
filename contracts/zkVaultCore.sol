@@ -195,6 +195,8 @@ contract zkVaultCore is ERC20 {
             "Caller is not the owner of the token"
         );
 
+        IERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
+
         // Mint mirrored ERC721 token
         string memory username = usernames[msg.sender];
         uint256 requestId = mirroredTokenRequestCount[username];
@@ -210,8 +212,6 @@ contract zkVaultCore is ERC20 {
         mirroredERC721Tokens[username][requestId] = mirroredToken;
         MirroredERC721(mirroredToken).mint(msg.sender, _tokenId);
         mirroredTokenRequestCount[username]++;
-
-        IERC721(_token).transferFrom(msg.sender, address(this), _tokenId);
     }
 
     function unlockERC721(
