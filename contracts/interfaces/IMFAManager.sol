@@ -2,7 +2,8 @@
 pragma solidity ^0.8.24;
 
 import "./IMFA.sol";
-import "./IGroth16VerifierP2.sol";
+import "./IzkVaultMFA.sol";
+import "./IExternalSignerMFA.sol";
 
 interface IMFAManager {
     function setzkVaultMFAAddress(address _zkVaultMFAAddress) external;

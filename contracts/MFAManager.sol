@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./interfaces/IExternalSignerMFA.sol";
-import "./interfaces/IzkVaultMFA.sol";
 import "./interfaces/IMFAManager.sol";
 
 contract MFAManager is IMFAManager {
@@ -114,11 +112,18 @@ contract MFAManager is IMFAManager {
         return true;
     }
 
-    function getVaultRequestMFAProviderCount(string memory username, uint256 requestId) external view returns (uint256) {
+    function getVaultRequestMFAProviderCount(
+        string memory username,
+        uint256 requestId
+    ) external view returns (uint256) {
         return vaultRequestMFAProviderCount[username][requestId];
     }
 
-    function getVaultRequestMFAProviders(string memory username, uint256 requestId, uint256 index) external view returns (address) {
+    function getVaultRequestMFAProviders(
+        string memory username,
+        uint256 requestId,
+        uint256 index
+    ) external view returns (address) {
         return address(vaultRequestMFAProviders[username][requestId][index]);
     }
 }

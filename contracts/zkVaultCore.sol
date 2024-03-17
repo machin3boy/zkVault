@@ -5,9 +5,6 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "./interfaces/IExternalSignerMFA.sol";
-import "./interfaces/IMFAManager.sol";
-import "./interfaces/IzkVaultMFA.sol";
 import "./interfaces/IMFAManager.sol";
 
 /*         88      8b           d8                         88              
@@ -277,7 +274,8 @@ contract zkVaultCore is ERC20 {
 
         for (
             uint256 i = 0;
-            i < mfaManager.getVaultRequestMFAProviderCount(username, _requestId);
+            i <
+            mfaManager.getVaultRequestMFAProviderCount(username, _requestId);
             ++i
         ) {
             IMFA mfaProvider = IMFA(
