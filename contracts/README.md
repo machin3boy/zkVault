@@ -8,7 +8,7 @@
    - Deploy the MFAManager contract.
    - Deploy the zkVaultCore contract, passing the address of the MFAManager contract.
    - Deploy the zkVaultMFA contract, passing the address of the Verifier contract and the address of the zkVaultCore contract.
-   - Set the zkVaultMFAAddress in the MFAManager contract by calling the `setzkVaultMFAAddress` function.
+   - Set the zkVaultMFA Address in the MFAManager contract by calling the `setzkVaultMFAAddress` function.
    - Deploy the ExternalSignerMFA contracts (for 0x1111 and 0x2222), passing the address of the external signer.
    - Deploy TestERC20.
    - Deploy TestERC721.
