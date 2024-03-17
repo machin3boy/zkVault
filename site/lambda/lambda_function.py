@@ -32,8 +32,9 @@ def recover_signature(signed_message):
 private_key_one = os.environ.get("PRIVATE_KEY_ONE")
 private_key_two = os.environ.get("PRIVATE_KEY_TWO")
 
-# Dictionary to store username secrets
-username_secrets = {}
+# Initialize DynamoDB client
+dynamodb = boto3.resource('dynamodb')
+secrets_table = dynamodb.Table('UsernameSecrets')
 
 def lambda_handler(event, context):
     if event['path'] == '/register':
@@ -41,20 +42,23 @@ def lambda_handler(event, context):
             body = json.loads(event['body'])
             username = body['username']
             
-            if username not in username_secrets:
+            # Check if the username exists in DynamoDB
+            response = secrets_table.get_item(Key={'username': username})
+            if 'Item' not in response:
                 # Generate secrets for the user if they don't exist
                 secret_one = pyotp.random_base32()
                 secret_two = pyotp.random_base32()
                 
-                # Store the secrets in the dictionary
-                username_secrets[username] = {
+                # Store the secrets in DynamoDB
+                secrets_table.put_item(Item={
+                    'username': username,
                     'secret_one': secret_one,
                     'secret_two': secret_two
-                }
+                })
             else:
                 # Retrieve the existing secrets for the user
-                secret_one = username_secrets[username]['secret_one']
-                secret_two = username_secrets[username]['secret_two']
+                secret_one = response['Item']['secret_one']
+                secret_two = response['Item']['secret_two']
             
             # Generate QR code URIs for the provisioners
             totp_one = pyotp.TOTP(secret_one)
@@ -79,9 +83,12 @@ def lambda_handler(event, context):
             otp_secret_two = body.get('otp_secret_two')
             request_id = body['request_id']
             
-            if username in username_secrets:
-                secret_one = username_secrets[username]['secret_one']
-                secret_two = username_secrets[username]['secret_two']
+            # Retrieve the secrets from DynamoDB
+            response = secrets_table.get_item(Key={'username': username})
+
+            if 'Item' in response:
+                secret_one = response['Item']['secret_one']
+                secret_two = response['Item']['secret_two']
                 
                 totp_one = pyotp.TOTP(secret_one)
                 totp_two = pyotp.TOTP(secret_two)
