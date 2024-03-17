@@ -16,7 +16,7 @@
 ## ExternalSignerMFA Addresses:
 
 - ExternalSignerMFA 1:
-  - Address: 0x1111950F771FD570cF8D158fbc6A11Ae19360f18
+  - Address: 0x1111697F4dA79a8e7969183d8aBd838572E50FF3
   - Key: 819843e94a6e40bb59127970c282468328cdeff87ef58299daa9ff1b98400f67
 
 - ExternalSignerMFA 2:
