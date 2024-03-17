@@ -6,8 +6,9 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/IExternalSignerMFA.sol";
+import "./interfaces/IMFAManager.sol";
 import "./interfaces/IzkVaultMFA.sol";
-import "./interfaces/IMFA.sol";
+import "./interfaces/IMFAManager.sol";
 
 /*         88      8b           d8                         88              
            88      `8b         d8'                         88    ,d        
@@ -23,29 +24,19 @@ contract zkVaultCore is ERC20 {
     mapping(string => address) public usernameAddress;
     mapping(address => uint256) public passwordHashes;
 
-    mapping(address => IMFA) public MFAProviders;
-    mapping(address => address) public MFAProviderOwners;
-
     //ZKP Solidity verifier
     IGroth16VerifierP2 public passwordVerifier;
 
     address public owner;
     address public deployer;
 
-    constructor() ERC20("zkVault", "VAULT") {
+    IMFAManager public mfaManager;
+
+    constructor(address _mfaManagerAddress) ERC20("zkVault", "VAULT") {
         _mint((address(this)), 10000000000 * 10**18);
         owner = msg.sender;
         deployer = msg.sender;
-    }
-
-    address public zkVaultMFAAddress;
-
-    function setzkVaultMFAAddress(address _zkVaultMFAAddress) external {
-        require(
-            msg.sender == owner,
-            "Only owner can set the zkVaultMFA address"
-        );
-        zkVaultMFAAddress = _zkVaultMFAAddress;
+        mfaManager = IMFAManager(_mfaManagerAddress);
     }
 
     function setPasswordVerifier(address _passwordVerifier) public {
@@ -167,34 +158,23 @@ contract zkVaultCore is ERC20 {
         );
     }
 
-    function registerMFAProvider(address provider) public {
-        require(
-            MFAProviders[provider] == IMFA(address(0)),
-            "Provider already exists"
-        );
-        MFAProviders[provider] = IMFA(provider);
-        MFAProviderOwners[provider] = msg.sender;
-    }
-
-    function deregisterMFAProvider(address provider) public {
-        require(
-            msg.sender == MFAProviderOwners[provider],
-            "Not owner of this MFA provider"
-        );
-        delete MFAProviders[provider];
-        delete MFAProviderOwners[provider];
-    }
-
-    mapping(string => mapping(uint256 => mapping(uint256 => IMFA)))
-        public vaultRequestMFAProviders;
-    mapping(string => mapping(uint256 => uint256))
-        public vaultRequestMFAProviderCount;
-
     mapping(string => uint256) public mirroredTokenRequestCount;
     mapping(string => mapping(uint256 => address)) public mirroredERC20Tokens;
     mapping(string => mapping(uint256 => address)) public mirroredERC721Tokens;
     mapping(string => mapping(uint256 => uint256))
         public underlyingERC721TokenIds;
+
+    event MirroredERC20Minted(
+        string indexed username,
+        string tokenSymbol,
+        uint256 amount
+    );
+
+    event MirroredERC721Minted(
+        string indexed username,
+        string tokenName,
+        string tokenSymbol
+    );
 
     function lockAsset(
         address _token,
@@ -204,7 +184,10 @@ contract zkVaultCore is ERC20 {
         address[] memory _mfaProviders
     ) public {
         require(_amount > 0 || _tokenId > 0, "Invalid amount or token ID");
-        require(_mfaProviders.length > 0, "At least one MFA provider is required");
+        require(
+            _mfaProviders.length > 0,
+            "At least one MFA provider is required"
+        );
 
         _transfer(msg.sender, address(this), _mfaProviders.length * 10**18);
 
@@ -248,6 +231,8 @@ contract zkVaultCore is ERC20 {
             );
             mirroredERC20Tokens[username][requestId] = mirroredToken;
             MirroredERC20(mirroredToken).mint(msg.sender, _amount);
+
+            emit MirroredERC20Minted(username, ERC20(_token).symbol(), _amount);
         } else {
             string memory name = string(
                 abi.encodePacked("Mirrored ", ERC721(_token).name())
@@ -268,17 +253,17 @@ contract zkVaultCore is ERC20 {
             mirroredERC721Tokens[username][requestId] = mirroredToken;
             underlyingERC721TokenIds[username][requestId] = _tokenId;
             MirroredERC721(mirroredToken).mint(msg.sender, 0);
+
+            emit MirroredERC721Minted(
+                username,
+                ERC721(_token).name(),
+                ERC721(_token).symbol()
+            );
         }
 
         mirroredTokenRequestCount[username]++;
 
-        for (uint256 i = 0; i < _mfaProviders.length; ++i) {
-            vaultRequestMFAProviders[username][requestId][i] = IMFA(
-                _mfaProviders[i]
-            );
-        }
-        vaultRequestMFAProviderCount[username][requestId] = _mfaProviders
-            .length;
+        mfaManager.setMFAProviders(username, requestId, _mfaProviders);
     }
 
     function unlockAsset(
@@ -292,12 +277,16 @@ contract zkVaultCore is ERC20 {
 
         for (
             uint256 i = 0;
-            i < vaultRequestMFAProviderCount[username][_requestId];
+            i < mfaManager.getVaultRequestMFAProviderCount(username, _requestId);
             ++i
         ) {
-            IMFA.MFAData memory mfaData = vaultRequestMFAProviders[username][
+            IMFA mfaProvider = IMFA(
+                mfaManager.getVaultRequestMFAProviders(username, _requestId, i)
+            );
+            IMFA.MFAData memory mfaData = mfaProvider.getMFAData(
+                username,
                 _requestId
-            ][i].getMFAData(username, _requestId);
+            );
             require(mfaData.success, "MFA verification failed");
             require(
                 mfaData.timestamp >= block.timestamp - timeLimit,
@@ -359,18 +348,15 @@ contract zkVaultCore is ERC20 {
 
         bool haszkVaultMFA = false;
         for (uint256 i = 0; i < _mfaProviders.length; ++i) {
-            if (_mfaProviders[i] == zkVaultMFAAddress) {
+            if (_mfaProviders[i] == mfaManager.getZkVaultMFAAddress()) {
                 haszkVaultMFA = true;
                 break;
             }
         }
 
         if (haszkVaultMFA) {
-            IzkVaultMFA(zkVaultMFAAddress).setRequestPasswordHash(
-                username,
-                requestId,
-                _passwordHash
-            );
+            IzkVaultMFA(mfaManager.getZkVaultMFAAddress())
+                .setRequestPasswordHash(username, requestId, _passwordHash);
         }
     }
 
@@ -385,26 +371,16 @@ contract zkVaultCore is ERC20 {
     ) external {
         string memory username = usernames[msg.sender];
 
-        for (uint256 i = 0; i < _mfaProviderData.length; ++i) {
-            if (_mfaProviderData[i].providerAddress == zkVaultMFAAddress) {
-                IzkVaultMFA(zkVaultMFAAddress).setMFAData(
-                    username,
-                    _requestId,
-                    _timestamp,
-                    _zkpParams
-                );
-            } else {
-                IExternalSignerMFA(_mfaProviderData[i].providerAddress).setValue(
-                    username,
-                    _requestId,
-                    _timestamp,
-                    _mfaProviderData[i].message,
-                    _mfaProviderData[i].v,
-                    _mfaProviderData[i].r,
-                    _mfaProviderData[i].s
-                );
-            }
-        }
+        require(
+            mfaManager.verifyMFA(
+                username,
+                _requestId,
+                _timestamp,
+                _zkpParams,
+                _mfaProviderData
+            ),
+            "MFA verification failed"
+        );
 
         unlockAsset(_token, _amount, _requestId, _isERC20);
     }
