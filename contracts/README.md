@@ -9,6 +9,7 @@
    - Deploy the zkVaultCore contract, passing the address of the MFAManager contract.
    - Deploy the zkVaultMFA contract, passing the address of the Verifier contract and the address of the zkVaultCore contract.
    - Set the zkVaultMFA Address in the MFAManager contract by calling the `setzkVaultMFAAddress` function.
+   - Set the Password Verifier address in zkVaultCore.
    - Deploy the ExternalSignerMFA contracts (for 0x1111 and 0x2222), passing the address of the external signer.
    - Deploy TestERC20.
    - Deploy TestERC721.
@@ -31,7 +32,8 @@
    - Test the `getMFAData` function to retrieve the stored MFA data.
 
 2. **Test zkVaultMFA Contract:**
-   - Call the `setRequestPasswordHash` function from the zkVaultCore contract and verify that the password hash is correctly set.
+   - Register a username first with the setUsername function in zkVaultCore
+   - Call the `setRequestPasswordHash` function from the zkVaultCore/zkVaultMFA contract and verify that the password hash is correctly set.
    - Call the `setMFAData` function with valid and invalid proof parameters and verify the expected behavior.
    - Test the `getMFAData` function to retrieve the stored MFA data.
 
