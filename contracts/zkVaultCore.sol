@@ -27,17 +27,17 @@ contract zkVaultCore is ERC20 {
     address public owner;
     address public deployer;
 
+    address public mfaManagerAddress;
     IMFAManager public mfaManager;
 
-    constructor(address _mfaManagerAddress) ERC20("zkVault", "VAULT") {
+    constructor(address _mfaManagerAddress, address _passwordVerifier)
+        ERC20("zkVault", "VAULT")
+    {
         _mint((address(this)), 10000000000 * 10**18);
         owner = msg.sender;
         deployer = msg.sender;
         mfaManager = IMFAManager(_mfaManagerAddress);
-    }
-
-    function setPasswordVerifier(address _passwordVerifier) public {
-        require(msg.sender == owner, "Not owner");
+        mfaManagerAddress = _mfaManagerAddress;
         passwordVerifier = IGroth16VerifierP2(_passwordVerifier);
     }
 

@@ -31,7 +31,9 @@ contract zkVaultMFA {
         require(
             msg.sender == zkVaultCoreAddress ||
                 IzkVaultCore(zkVaultCoreAddress).usernameAddress(username) ==
-                msg.sender,
+                msg.sender ||
+                msg.sender ==
+                IzkVaultCore(zkVaultCoreAddress).mfaManagerAddress(),
             "Only the zkVaultCore contract or the owner of the username can set the password hash"
         );
         MFARequestPasswordHashes[username][requestId] = requestPasswordHash;
@@ -46,6 +48,15 @@ contract zkVaultMFA {
         uint256 timeLimit = 120;
         require(timestamp <= block.timestamp);
         require(timestamp >= block.timestamp - timeLimit);
+
+        require(
+            msg.sender == zkVaultCoreAddress ||
+                IzkVaultCore(zkVaultCoreAddress).usernameAddress(username) ==
+                msg.sender ||
+                msg.sender ==
+                IzkVaultCore(zkVaultCoreAddress).mfaManagerAddress(),
+            "Only the zkVaultCore contract or the owner of the username can set the MFA data"
+        );
 
         uint256[2] memory pA = [params.pA0, params.pA1];
         uint256[2][2] memory pB = [
