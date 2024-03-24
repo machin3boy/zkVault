@@ -70,7 +70,7 @@ contract MFAManager is IMFAManager {
         ProofParameters memory _zkpParams,
         MFAProviderData[] memory _mfaProviderData
     ) external returns (bool) {
-        uint256 timeLimit = 120; // 2 minutes
+        uint256 timeLimit = 600; // 10 minutes
 
         for (
             uint256 i = 0;

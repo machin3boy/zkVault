@@ -135,7 +135,7 @@ contract zkVaultCore is ERC20 {
         uint256 timestamp,
         ProofParameters calldata params
     ) public view {
-        uint256 timeLimit = 120;
+        uint256 timeLimit = 600;
         require(timestamp <= block.timestamp);
         require(timestamp >= block.timestamp - timeLimit);
 
@@ -270,7 +270,7 @@ contract zkVaultCore is ERC20 {
         bool _isERC20
     ) public {
         string memory username = usernames[msg.sender];
-        uint256 timeLimit = 120; // 2 minutes
+        uint256 timeLimit = 600; // 2 minutes
 
         for (
             uint256 i = 0;

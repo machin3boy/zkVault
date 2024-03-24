@@ -45,7 +45,7 @@ contract zkVaultMFA {
         uint256 timestamp,
         ProofParameters calldata params
     ) external {
-        uint256 timeLimit = 120;
+        uint256 timeLimit = 600;
         require(timestamp <= block.timestamp);
         require(timestamp >= block.timestamp - timeLimit);
 

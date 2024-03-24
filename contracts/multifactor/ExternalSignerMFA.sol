@@ -24,7 +24,7 @@ contract ExternalSignerMFA {
         bytes32 r,
         bytes32 s
     ) public {
-        uint256 timeLimit = 120;
+        uint256 timeLimit = 600;
         require(timestamp <= block.timestamp);
         require(timestamp >= block.timestamp - timeLimit);
 
