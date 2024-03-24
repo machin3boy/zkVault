@@ -2,6 +2,7 @@
 pragma solidity ^0.8.7;
 
 import "../interfaces/IGroth16VerifierP2.sol";
+import "../interfaces/IzkVaultCore.sol";
 
 contract zkVaultMFA {
     IGroth16VerifierP2 private passwordVerifier;
@@ -28,8 +29,10 @@ contract zkVaultMFA {
         uint256 requestPasswordHash
     ) external {
         require(
-            msg.sender == zkVaultCoreAddress,
-            "Only the zkVaultCore contract can set the password hash"
+            msg.sender == zkVaultCoreAddress ||
+                IzkVaultCore(zkVaultCoreAddress).usernameAddress(username) ==
+                msg.sender,
+            "Only the zkVaultCore contract or the owner of the username can set the password hash"
         );
         MFARequestPasswordHashes[username][requestId] = requestPasswordHash;
     }
