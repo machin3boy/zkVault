@@ -10,10 +10,6 @@ interface IMFAManager {
 
     function getZkVaultMFAAddress() external view returns (address);
 
-    function registerMFAProvider(address provider) external;
-
-    function deregisterMFAProvider(address provider) external;
-
     function setMFAProviders(
         string memory username,
         uint256 requestId,

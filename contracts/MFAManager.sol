@@ -4,9 +4,6 @@ pragma solidity ^0.8.24;
 import "./interfaces/IMFAManager.sol";
 
 contract MFAManager is IMFAManager {
-    mapping(address => IMFA) public MFAProviders;
-    mapping(address => address) public MFAProviderOwners;
-
     mapping(string => mapping(uint256 => mapping(uint256 => IMFA)))
         public vaultRequestMFAProviders;
     mapping(string => mapping(uint256 => uint256))
@@ -29,24 +26,6 @@ contract MFAManager is IMFAManager {
 
     function getZkVaultMFAAddress() external view returns (address) {
         return zkVaultMFAAddress;
-    }
-
-    function registerMFAProvider(address provider) public {
-        require(
-            MFAProviders[provider] == IMFA(address(0)),
-            "Provider already exists"
-        );
-        MFAProviders[provider] = IMFA(provider);
-        MFAProviderOwners[provider] = msg.sender;
-    }
-
-    function deregisterMFAProvider(address provider) public {
-        require(
-            msg.sender == MFAProviderOwners[provider],
-            "Not owner of this MFA provider"
-        );
-        delete MFAProviders[provider];
-        delete MFAProviderOwners[provider];
     }
 
     function setMFAProviders(

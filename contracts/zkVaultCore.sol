@@ -270,7 +270,7 @@ contract zkVaultCore is ERC20 {
         bool _isERC20
     ) public {
         string memory username = usernames[msg.sender];
-        uint256 timeLimit = 600; // 2 minutes
+        uint256 timeLimit = 600; // 10 minutes
 
         for (
             uint256 i = 0;
