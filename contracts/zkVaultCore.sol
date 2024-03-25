@@ -180,7 +180,6 @@ contract zkVaultCore is ERC20 {
         bool _isERC20,
         address[] memory _mfaProviders
     ) public {
-        require(_amount > 0 || _tokenId > 0, "Invalid amount or token ID");
         require(
             _mfaProviders.length > 0,
             "At least one MFA provider is required"
@@ -189,6 +188,7 @@ contract zkVaultCore is ERC20 {
         _transfer(msg.sender, address(this), _mfaProviders.length * 10**18);
 
         if (_isERC20) {
+            require(_amount > 0, "Invalid amount");
             require(
                 IERC20(_token).balanceOf(msg.sender) >= _amount,
                 "Insufficient balance"
