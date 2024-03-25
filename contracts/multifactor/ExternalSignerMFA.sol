@@ -112,9 +112,16 @@ contract ExternalSignerMFA {
     {
         uint256 value = 0;
         uint256 index = startIndex;
+        bool isZero = true;
         while (index < data.length && data[index] != "-") {
+            if (data[index] != "0") {
+                isZero = false;
+            }
             value = value * 10 + uint256(uint8(data[index])) - 48;
             index++;
+        }
+        if (isZero && index > startIndex) {
+            return 0;
         }
         return value;
     }
