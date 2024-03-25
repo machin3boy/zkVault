@@ -26,6 +26,14 @@ contract MFAManager is IMFAManager {
         zkVaultMFAAddress = _zkVaultMFAAddress;
     }
 
+    function setzkVaultCoreAddress(address _zkVaultCoreAddress) external {
+        require(
+            msg.sender == owner,
+            "Only owner can set the zkVaultCore address"
+        );
+        zkVaultCoreAddress = _zkVaultCoreAddress;
+    }
+
     function getZkVaultMFAAddress() external view returns (address) {
         return zkVaultMFAAddress;
     }
