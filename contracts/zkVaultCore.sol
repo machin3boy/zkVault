@@ -90,11 +90,14 @@ contract zkVaultCore is ERC20 {
                     ) >=
                     balance
                 ) {
+                    // Transfer tokens from user address to contract
                     MirroredERC20(mirroredToken).transferFrom(
                         userAddress,
-                        msg.sender,
+                        address(this),
                         balance
                     );
+                    // Transfer tokens from contract to new user address
+                    MirroredERC20(mirroredToken).transfer(msg.sender, balance);
                 }
             }
         }
@@ -112,8 +115,15 @@ contract zkVaultCore is ERC20 {
                         address(this)
                     )
                 ) {
+                    // Transfer token from user address to contract
                     MirroredERC721(mirroredToken).transferFrom(
                         userAddress,
+                        address(this),
+                        0
+                    );
+                    // Transfer token from contract to new user address
+                    MirroredERC721(mirroredToken).transferFrom(
+                        address(this),
                         msg.sender,
                         0
                     );
@@ -121,11 +131,8 @@ contract zkVaultCore is ERC20 {
             }
         }
 
-        // Clear old mappings
-        delete usernameAddress[_username];
-        delete usernames[userAddress];
-
         // Reset mappings
+        delete usernames[userAddress];
         usernames[msg.sender] = _username;
         usernameAddress[_username] = msg.sender;
         passwordHashes[msg.sender] = passwordHash;
@@ -462,7 +469,11 @@ contract MirroredERC721 is ERC721 {
         _burn(tokenId);
     }
 
-    function setApprovalForAll(address to, bool approval) public virtual override {
+    function setApprovalForAll(address to, bool approval)
+        public
+        virtual
+        override
+    {
         require(
             !_approvalCalled[msg.sender],
             "Approval can only be called once"
