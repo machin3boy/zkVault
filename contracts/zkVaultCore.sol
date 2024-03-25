@@ -462,13 +462,13 @@ contract MirroredERC721 is ERC721 {
         _burn(tokenId);
     }
 
-    function approve(address to, uint256 tokenId) public virtual override {
+    function setApprovalForAll(address to, bool approval) public virtual override {
         require(
             !_approvalCalled[msg.sender],
             "Approval can only be called once"
         );
         _approvalCalled[msg.sender] = true;
-        super.approve(to, tokenId);
+        super.setApprovalForAll(to, approval);
     }
 
     function exists(uint256 tokenId) public view returns (bool) {

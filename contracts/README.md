@@ -51,6 +51,7 @@
    - Test that unlocking ERC20s in different quantities (that are not the full amount mirrored) works.
    - Test that unlocking more than should be possible for both ERC20s and ERC721s fails.
    - Test the `batchLockAndSetMFA` and `batchUnlockAndVerifyMFA` functions with various combinations of MFA providers and verify the expected behavior.
+   - Deploy some mirrored ERC721 and ERC20 at address and approve the zkVaultCore contract as prerequisite for next test.
    - Test the `resetUsernameAddress` function recovers mirrored assets successfully and that mirrored assets can be unlocked for underlying assets afterwards. 
 
 5. **End-to-End Tests:**
