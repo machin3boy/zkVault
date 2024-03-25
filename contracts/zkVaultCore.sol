@@ -105,6 +105,7 @@ contract zkVaultCore is ERC20 {
             address mirroredToken = mirroredERC721Tokens[_username][i];
             if (mirroredToken != address(0)) {
                 if (
+                    MirroredERC721(mirroredToken).exists(0) &&
                     MirroredERC721(mirroredToken).ownerOf(0) == userAddress &&
                     MirroredERC721(mirroredToken).isApprovedForAll(
                         userAddress,
@@ -468,5 +469,9 @@ contract MirroredERC721 is ERC721 {
         );
         _approvalCalled[msg.sender] = true;
         super.approve(to, tokenId);
+    }
+
+    function exists(uint256 tokenId) public view returns (bool) {
+        return exists(tokenId);
     }
 }

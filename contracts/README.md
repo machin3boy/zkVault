@@ -48,7 +48,10 @@
    - Lock an asset (ERC20 or ERC721) using the `lockAsset` function and verify that the mirrored tokens are minted correctly.
    - Verify that the `MirroredERC20Minted` and `MirroredERC721Minted` events are emitted with the correct data.
    - Test the `unlockAsset` function by providing valid MFA data and verifying that the original tokens are transferred back to the user and the mirrored tokens are burned.
+   - Test that unlocking ERC20s in different quantities (that are not the full amount mirrored) works.
+   - Test that unlocking more than should be possible for both ERC20s and ERC721s fails.
    - Test the `batchLockAndSetMFA` and `batchUnlockAndVerifyMFA` functions with various combinations of MFA providers and verify the expected behavior.
+   - Test the `resetUsernameAddress` function recovers mirrored assets successfully and that mirrored assets can be unlocked for underlying assets afterwards. 
 
 5. **End-to-End Tests:**
    - Perform a complete flow of locking an asset, setting MFA data, and unlocking the asset using the zkVaultCore contract.
