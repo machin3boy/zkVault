@@ -37,10 +37,9 @@
    - Test the `getMFAData` function to retrieve the stored MFA data.
 
 3. **Test MFAManager Contract:**
-   - Register and deregister MFA providers using the respective functions.
    - Call the `setMFAProviders` function and verify that the MFA providers are correctly set for a given username and request ID.
-   - Test the `verifyMFA` function with valid and invalid MFA provider data and proof parameters.
    - Verify that the `getVaultRequestMFAProviderCount` and `getVaultRequestMFAProviders` functions return the correct values.
+   - Test the `verifyMFA` function with valid and invalid MFA provider data and proof parameters. Complete first step of 4 if necessary.
 
 4. **Test zkVaultCore Contract:**
    - Set a username and password hash using the `setUsername` function.

@@ -51,21 +51,6 @@ contract MFAManager is IMFAManager {
     ) external returns (bool) {
         uint256 timeLimit = 600; // 10 minutes
 
-        for (
-            uint256 i = 0;
-            i < vaultRequestMFAProviderCount[username][requestId];
-            ++i
-        ) {
-            IMFA.MFAData memory mfaData = vaultRequestMFAProviders[username][
-                requestId
-            ][i].getMFAData(username, requestId);
-            require(mfaData.success, "MFA verification failed");
-            require(
-                mfaData.timestamp >= block.timestamp - timeLimit,
-                "MFA data expired"
-            );
-        }
-
         for (uint256 i = 0; i < _mfaProviderData.length; ++i) {
             if (_mfaProviderData[i].providerAddress == zkVaultMFAAddress) {
                 IzkVaultMFA(zkVaultMFAAddress).setMFAData(
@@ -86,6 +71,21 @@ contract MFAManager is IMFAManager {
                         _mfaProviderData[i].s
                     );
             }
+        }
+
+        for (
+            uint256 i = 0;
+            i < vaultRequestMFAProviderCount[username][requestId];
+            ++i
+        ) {
+            IMFA.MFAData memory mfaData = vaultRequestMFAProviders[username][
+                requestId
+            ][i].getMFAData(username, requestId);
+            require(mfaData.success, "MFA verification failed");
+            require(
+                mfaData.timestamp >= block.timestamp - timeLimit,
+                "MFA data expired"
+            );
         }
 
         return true;
