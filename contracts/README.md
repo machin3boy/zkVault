@@ -43,6 +43,8 @@
 
 4. **Test zkVaultCore Contract:**
    - Set a username and password hash using the `setUsername` function.
+   - Retrieve some zkVault VAULT tokens via vaultTokensFaucet.
+   - Approve ERC20, ERC721 assets that mirroring will be tested with.
    - Lock an asset (ERC20 or ERC721) using the `lockAsset` function and verify that the mirrored tokens are minted correctly.
    - Verify that the `MirroredERC20Minted` and `MirroredERC721Minted` events are emitted with the correct data.
    - Test the `unlockAsset` function by providing valid MFA data and verifying that the original tokens are transferred back to the user and the mirrored tokens are burned.

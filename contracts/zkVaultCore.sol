@@ -12,7 +12,7 @@ import "./interfaces/IMFAManager.sol";
            88       `8b       d8'                          88    88        
 888888888  88   ,d8  `8b     d8'  ,adPPYYba,  88       88  88  MM88MMM     
      a8P"  88 ,a8"    `8b   d8'   ""     `Y8  88       88  88    88        
-  ,d8P'    8888[       `8b d8'    ,adPPPPP88  88       88  88    88        
+  ,d8P'    8888{       `8b d8'    ,adPPPPP88  88       88  88    88        
 ,d8"       88`"Yba,     `888'     88,    ,88  "8a,   ,a88  88    88,       
 888888888  88   `Y8a     `8'      `"8bbdP"Y8   `"YbbdP'Y8  88    "Y8*/
 
@@ -162,13 +162,13 @@ contract zkVaultCore is ERC20 {
         public underlyingERC721TokenIds;
 
     event MirroredERC20Minted(
-        string indexed username,
+        string username,
         string tokenSymbol,
         uint256 amount
     );
 
     event MirroredERC721Minted(
-        string indexed username,
+        string username,
         string tokenName,
         string tokenSymbol
     );
