@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "./interfaces/IMFAManager.sol";
+import "./interfaces/IzkVaultCore.sol";
 
 contract MFAManager is IMFAManager {
     mapping(string => mapping(uint256 => mapping(uint256 => IMFA)))
@@ -10,6 +11,7 @@ contract MFAManager is IMFAManager {
         public vaultRequestMFAProviderCount;
 
     address public zkVaultMFAAddress;
+    address public zkVaultCoreAddress;
     address public owner;
 
     constructor() {
@@ -33,6 +35,15 @@ contract MFAManager is IMFAManager {
         uint256 requestId,
         address[] memory _mfaProviders
     ) external {
+        require(
+            (msg.sender == zkVaultCoreAddress &&
+                zkVaultCoreAddress != address(0)) ||
+                IzkVaultCore(zkVaultCoreAddress).usernameAddress(username) ==
+                msg.sender ||
+                msg.sender == address(this),
+            "Only the zkVaultCore contract, the owner of the username, or the MFA manager can set MFA providers"
+        );
+
         for (uint256 i = 0; i < _mfaProviders.length; ++i) {
             vaultRequestMFAProviders[username][requestId][i] = IMFA(
                 _mfaProviders[i]
@@ -49,6 +60,14 @@ contract MFAManager is IMFAManager {
         ProofParameters memory _zkpParams,
         MFAProviderData[] memory _mfaProviderData
     ) external returns (bool) {
+        require(
+            (msg.sender == zkVaultCoreAddress &&
+                zkVaultCoreAddress != address(0)) ||
+                IzkVaultCore(zkVaultCoreAddress).usernameAddress(username) ==
+                msg.sender,
+            "Only the zkVaultCore contract or the owner of the username can verify MFA"
+        );
+
         uint256 timeLimit = 600; // 10 minutes
 
         for (uint256 i = 0; i < _mfaProviderData.length; ++i) {
