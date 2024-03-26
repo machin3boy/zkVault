@@ -1,8 +1,8 @@
 "use client";
-import React, { useEffect } from 'react';
-import { EvervaultCard } from './components/ui/evervault-card'
-import { LampDemo } from './components/ui/lamp';
-import {GoogleGeminiEffectDemo} from './components/gemini'
+import React, { useEffect } from "react";
+import { EvervaultCard } from "./components/ui/evervault-card";
+import { LampDemo } from "./components/ui/lamp";
+import { GoogleGeminiEffectDemo } from "./components/gemini";
 import { useMotionValue } from "framer-motion";
 
 function App() {
@@ -13,7 +13,13 @@ function App() {
   const pathLength4 = useMotionValue(0);
   const pathLength5 = useMotionValue(0);
 
-  const pathLengths = [pathLength1, pathLength2, pathLength3, pathLength4, pathLength5];
+  const pathLengths = [
+    pathLength1,
+    pathLength2,
+    pathLength3,
+    pathLength4,
+    pathLength5,
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,10 +30,10 @@ function App() {
       });
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, [pathLengths]); // Include pathLengths in the dependency array
 
@@ -37,7 +43,7 @@ function App() {
       <LampDemo />
 
       {/* Render the GoogleGeminiEffect component */}
-      <GoogleGeminiEffectDemo/>
+      <GoogleGeminiEffectDemo />
 
       {/* Horizontally align and center the EvervaultCard components */}
       <div className="flex justify-center mt-10 space-x-14">

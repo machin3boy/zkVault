@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { cn } from "../../utils/cn"
+import { cn } from "../../utils/cn";
 
 export function LampDemo() {
   return (
@@ -16,19 +16,13 @@ export function LampDemo() {
         }}
         className="mt-8 bg-gradient-to-br from-stone-50 to-slate-300 py-4 bg-clip-text text-center text-4xl font-medium tracking-tight text-transparent md:text-7xl"
       >
-        <span className="text-sky-500">zkVault:</span> the next generation of asset <br/> security and account abstraction.
+        <span className="text-sky-500 font-semibold">zkVault:</span>The Next Generation of Asset Security & Account Abstraction
       </motion.h1>
     </LampContainer>
   );
 }
 
-export const LampContainer = ({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => {
+export const LampContainer = ({ children, className }) => {
   return (
     <div
       className={cn(
