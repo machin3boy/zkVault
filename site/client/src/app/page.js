@@ -41,7 +41,7 @@ function App() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-black bg-dot-white/[0.3] z-10">
         <LampDemo />
         <GoogleGeminiEffectDemo />
-        <div className="flex justify-center my-40">
+        <div className="flex justify-center my-52">
           <EvervaultCard text="ETH" className="w-64 h-64 mx-10" />
           <EvervaultCard text="BTT" className="w-64 h-64 mx-10" />
           <EvervaultCard text="TRX" className="w-64 h-64 mx-10" />
