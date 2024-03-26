@@ -16,7 +16,7 @@ export const GoogleGeminiEffect = ({
   className,
 }) => {
   return (
-    <div className={cn("sticky top-60", className)}>
+    <div className={cn("sticky top-[28vh]", className)}>
       {/* <p className="text-xs md:text-xl font-normal text-center text-neutral-400 mt-4 max-w-lg mx-auto">
         {description ||
           `Scroll this component and see the bottom SVG come to life wow this
