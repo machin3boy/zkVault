@@ -5,7 +5,11 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./interfaces/IMirroredERC721.sol";
+import "./interfaces/IMirroredERC20.sol";
 import "./interfaces/IMFAManager.sol";
+import "./MirroredERC721Factory.sol";
+import "./MirroredERC20Factory.sol";
 
 /*         88      8b           d8                         88              
            88      `8b         d8'                         88    ,d        
@@ -30,6 +34,9 @@ contract zkVaultCore is ERC20 {
     address public mfaManagerAddress;
     IMFAManager public mfaManager;
 
+    MirroredERC721Factory public mirroredERC721Factory;
+    MirroredERC20Factory public mirroredERC20Factory;
+
     constructor(address _mfaManagerAddress, address _passwordVerifier)
         ERC20("zkVault", "VAULT")
     {
@@ -39,6 +46,8 @@ contract zkVaultCore is ERC20 {
         mfaManager = IMFAManager(_mfaManagerAddress);
         mfaManagerAddress = _mfaManagerAddress;
         passwordVerifier = IGroth16VerifierP2(_passwordVerifier);
+        mirroredERC721Factory = new MirroredERC721Factory();
+        mirroredERC20Factory = new MirroredERC20Factory();
     }
 
     function releaseOwnership() public {
@@ -79,17 +88,17 @@ contract zkVaultCore is ERC20 {
         for (uint256 i = 0; i < requestCount; ++i) {
             address mirroredToken = mirroredERC20Tokens[_username][i];
             if (mirroredToken != address(0)) {
-                uint256 balance = MirroredERC20(mirroredToken).balanceOf(
+                uint256 balance = IMirroredERC20(mirroredToken).balanceOf(
                     oldUserAddress
                 );
                 if (balance > 0) {
                     // Burn tokens from the old user address
-                    MirroredERC20(mirroredToken).burnFrom(
+                    IMirroredERC20(mirroredToken).burnFrom(
                         oldUserAddress,
                         balance
                     );
                     // Mint tokens to the new user address
-                    MirroredERC20(mirroredToken).mint(msg.sender, balance);
+                    IMirroredERC20(mirroredToken).mint(msg.sender, balance);
                 }
             }
         }
@@ -100,13 +109,13 @@ contract zkVaultCore is ERC20 {
             if (mirroredToken != address(0)) {
                 uint256 tokenId = underlyingERC721TokenIds[_username][i];
                 if (
-                    MirroredERC721(mirroredToken).ownerOfToken(tokenId) ==
+                    IMirroredERC721(mirroredToken).ownerOfToken(tokenId) ==
                     oldUserAddress
                 ) {
                     // Burn token from the old user address
-                    MirroredERC721(mirroredToken).burn(tokenId);
+                    IMirroredERC721(mirroredToken).burn(tokenId);
                     // Mint token to the new user address
-                    MirroredERC721(mirroredToken).mint(msg.sender, tokenId);
+                    IMirroredERC721(mirroredToken).mint(msg.sender, tokenId);
                 }
             }
         }
@@ -204,18 +213,16 @@ contract zkVaultCore is ERC20 {
             string memory symbol = string(
                 abi.encodePacked("m", ERC20(_token).symbol())
             );
-            address mirroredToken = address(
-                new MirroredERC20(
-                    name,
-                    symbol,
-                    _token,
-                    requestId,
-                    username,
-                    address(this)
-                )
+            address mirroredToken = mirroredERC20Factory.createMirroredERC20(
+                name,
+                symbol,
+                _token,
+                requestId,
+                username,
+                address(this)
             );
             mirroredERC20Tokens[username][requestId] = mirroredToken;
-            MirroredERC20(mirroredToken).mint(msg.sender, _amount);
+            IMirroredERC20(mirroredToken).mint(msg.sender, _amount);
 
             emit MirroredERC20Minted(username, ERC20(_token).symbol(), _amount);
         } else {
@@ -225,19 +232,17 @@ contract zkVaultCore is ERC20 {
             string memory symbol = string(
                 abi.encodePacked("m", ERC721(_token).symbol())
             );
-            address mirroredToken = address(
-                new MirroredERC721(
-                    name,
-                    symbol,
-                    _token,
-                    requestId,
-                    username,
-                    address(this)
-                )
+            address mirroredToken = mirroredERC721Factory.createMirroredERC721(
+                name,
+                symbol,
+                _token,
+                requestId,
+                username,
+                address(this)
             );
             mirroredERC721Tokens[username][requestId] = mirroredToken;
             underlyingERC721TokenIds[username][requestId] = _tokenId;
-            MirroredERC721(mirroredToken).mint(msg.sender, 0);
+            IMirroredERC721(mirroredToken).mint(msg.sender, 0);
 
             emit MirroredERC721Minted(
                 username,
@@ -287,7 +292,7 @@ contract zkVaultCore is ERC20 {
                 "Mirrored token does not exist"
             );
             require(
-                MirroredERC20(mirroredToken).balanceOf(msg.sender) >= _amount,
+                IMirroredERC20(mirroredToken).balanceOf(msg.sender) >= _amount,
                 "Insufficient mirrored token balance"
             );
             require(
@@ -295,7 +300,7 @@ contract zkVaultCore is ERC20 {
                 "Insufficient balance in contract"
             );
 
-            MirroredERC20(mirroredToken).burnFrom(msg.sender, _amount);
+            IMirroredERC20(mirroredToken).burnFrom(msg.sender, _amount);
             IERC20(_token).transfer(msg.sender, _amount);
         } else {
             address mirroredToken = mirroredERC721Tokens[username][_requestId];
@@ -304,7 +309,7 @@ contract zkVaultCore is ERC20 {
                 "Mirrored token does not exist"
             );
             require(
-                MirroredERC721(mirroredToken).ownerOf(0) == msg.sender,
+                IMirroredERC721(mirroredToken).ownerOf(0) == msg.sender,
                 "Caller is not owner of mirrored token"
             );
 
@@ -314,7 +319,7 @@ contract zkVaultCore is ERC20 {
                 "Contract is not owner of token"
             );
 
-            MirroredERC721(mirroredToken).burn(0);
+            IMirroredERC721(mirroredToken).burn(0);
             IERC721(_token).transferFrom(address(this), msg.sender, tokenId);
         }
     }
@@ -369,71 +374,5 @@ contract zkVaultCore is ERC20 {
         );
 
         unlockAsset(_token, _amount, _requestId, _isERC20);
-    }
-}
-
-contract MirroredERC20 is ERC20 {
-    address public underlyingAsset;
-    uint256 public requestId;
-    string public username;
-    address public owner;
-
-    constructor(
-        string memory name,
-        string memory symbol,
-        address _underlyingAsset,
-        uint256 _requestId,
-        string memory _username,
-        address _owner
-    ) ERC20(name, symbol) {
-        underlyingAsset = _underlyingAsset;
-        requestId = _requestId;
-        username = _username;
-        owner = _owner;
-    }
-
-    function mint(address to, uint256 amount) public {
-        require(msg.sender == owner, "Only the owner can mint tokens");
-        _mint(to, amount);
-    }
-
-    function burnFrom(address account, uint256 amount) public {
-        require(msg.sender == owner, "Only the owner can burn tokens");
-        _burn(account, amount);
-    }
-}
-
-contract MirroredERC721 is ERC721 {
-    address public underlyingAsset;
-    uint256 public requestId;
-    string public username;
-    address public owner;
-
-    constructor(
-        string memory name,
-        string memory symbol,
-        address _underlyingAsset,
-        uint256 _requestId,
-        string memory _username,
-        address _owner
-    ) ERC721(name, symbol) {
-        underlyingAsset = _underlyingAsset;
-        requestId = _requestId;
-        username = _username;
-        owner = _owner;
-    }
-
-    function mint(address to, uint256 tokenId) public {
-        require(msg.sender == owner, "Only owner can mint tokens");
-        _safeMint(to, tokenId);
-    }
-
-    function burn(uint256 tokenId) public {
-        require(msg.sender == owner, "Only owner can burn tokens");
-        _burn(tokenId);
-    }
-
-    function ownerOfToken(uint256 tokenId) public view returns (address) {
-        return _ownerOf(tokenId);
     }
 }
