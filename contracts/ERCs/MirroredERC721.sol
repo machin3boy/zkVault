@@ -4,6 +4,8 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
+import "../interfaces/IzkVaultCore.sol";
+
 contract MirroredERC721 is ERC721 {
     address public underlyingAsset;
     uint256 public requestId;
@@ -13,18 +15,22 @@ contract MirroredERC721 is ERC721 {
     bool public transfersDisabled;
     uint256 public transferUnlockTimestamp;
 
+    address public zkVaultCoreAddress;
+
     constructor(
         string memory name,
         string memory symbol,
         address _underlyingAsset,
         uint256 _requestId,
         string memory _username,
-        address _owner
+        address _owner,
+        address _zkVaultCoreAddress
     ) ERC721(name, symbol) {
         underlyingAsset = _underlyingAsset;
         requestId = _requestId;
         username = _username;
         owner = _owner;
+        zkVaultCoreAddress = _zkVaultCoreAddress;
     }
 
     function mint(address to, uint256 tokenId) public {
@@ -42,11 +48,21 @@ contract MirroredERC721 is ERC721 {
     }
 
     function disableTransfersPermanently() public {
+        require(
+            IzkVaultCore(zkVaultCoreAddress).usernameAddress(username) ==
+                msg.sender,
+            "Only the owner of the username can disable transfers"
+        );
         require(!transfersDisabled, "Transfers already permanently disabled");
         transfersDisabled = true;
     }
 
     function setTransferUnlockTimestamp(uint256 unlockTime) public {
+        require(
+            IzkVaultCore(zkVaultCoreAddress).usernameAddress(username) ==
+                msg.sender,
+            "Only the owner of the username can set the unlock timestamp"
+        );
         require(
             unlockTime > block.timestamp,
             "Unlock time must be in the future"

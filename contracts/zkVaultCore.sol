@@ -219,6 +219,7 @@ contract zkVaultCore is ERC20 {
                 _token,
                 requestId,
                 username,
+                address(this),
                 address(this)
             );
             mirroredERC20Tokens[username][requestId] = mirroredToken;
@@ -238,6 +239,7 @@ contract zkVaultCore is ERC20 {
                 _token,
                 requestId,
                 username,
+                address(this),
                 address(this)
             );
             mirroredERC721Tokens[username][requestId] = mirroredToken;

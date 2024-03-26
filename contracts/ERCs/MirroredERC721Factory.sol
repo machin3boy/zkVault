@@ -10,7 +10,8 @@ contract MirroredERC721Factory {
         address underlyingAsset,
         uint256 requestId,
         string memory username,
-        address owner
+        address owner,
+        address zkVaultCoreAddress
     ) external returns (address) {
         MirroredERC721 mirroredToken = new MirroredERC721(
             name,
@@ -18,7 +19,8 @@ contract MirroredERC721Factory {
             underlyingAsset,
             requestId,
             username,
-            owner
+            owner,
+            zkVaultCoreAddress
         );
         return address(mirroredToken);
     }
