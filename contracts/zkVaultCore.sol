@@ -5,11 +5,11 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./ERCs/MirroredERC721Factory.sol";
+import "./ERCs/MirroredERC20Factory.sol";
 import "./interfaces/IMirroredERC721.sol";
 import "./interfaces/IMirroredERC20.sol";
 import "./interfaces/IMFAManager.sol";
-import "./MirroredERC721Factory.sol";
-import "./MirroredERC20Factory.sol";
 
 /*         88      8b           d8                         88              
            88      `8b         d8'                         88    ,d        

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./interfaces/IMFAManager.sol";
-import "./interfaces/IzkVaultCore.sol";
+import "../interfaces/IMFAManager.sol";
+import "../interfaces/IzkVaultCore.sol";
 
 contract MFAManager is IMFAManager {
     mapping(string => mapping(uint256 => mapping(uint256 => IMFA)))
