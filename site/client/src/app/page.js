@@ -38,22 +38,15 @@ function App() {
   }, [pathLengths]); // Include pathLengths in the dependency array
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black">
-      {/* Render the LampDemo component */}
-      <LampDemo />
-
-      {/* Render the GoogleGeminiEffect component */}
-      <GoogleGeminiEffectDemo />
-
-      {/* Horizontally align and center the EvervaultCard components */}
-      <div className="flex justify-center mt-10 space-x-14">
-        {/* Render three EvervaultCard components */}
-        {/* Adjusted size using Tailwind CSS utility classes */}
-        <EvervaultCard text="zETH" className="bg-black w-64 h-64" />
-        <EvervaultCard text="zBTC" className="bg-black w-64 h-64" />
-        <EvervaultCard text="zTRX" className="bg-black w-64 h-64" />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black bg-dot-white/[0.3] z-10">
+        <LampDemo />
+        <GoogleGeminiEffectDemo />
+        <div className="flex justify-center my-40">
+          <EvervaultCard text="zETH" className="w-64 h-64 mx-10" />
+          <EvervaultCard text="zBTC" className="w-64 h-64 mx-10" />
+          <EvervaultCard text="zTRX" className="w-64 h-64 mx-10" />
+        </div>
       </div>
-    </div>
   );
 }
 

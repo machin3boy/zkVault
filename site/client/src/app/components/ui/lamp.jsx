@@ -7,16 +7,16 @@ export function LampDemo() {
   return (
     <LampContainer>
       <motion.h1
-        initial={{ opacity: 0.5, y: 100 }}
-        whileInView={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0.0, y: 300 }}
+        whileInView={{ opacity: 1, y: 150 }}
         transition={{
           delay: 0.3,
           duration: 0.8,
           ease: "easeInOut",
         }}
-        className="mt-8 bg-gradient-to-br from-stone-50 to-slate-300 py-4 bg-clip-text text-center text-4xl font-medium tracking-tight text-transparent md:text-7xl"
+        className="bg-gradient-to-br from-stone-50 to-slate-300 py-4 bg-clip-text text-center font-semibold tracking-tight text-white text-4xl"
       >
-        <span className="text-sky-500 font-semibold">zkVault:</span>The Next Generation of Asset Security & Account Abstraction
+        <span className="text-sky-500">zkVault:</span> The <span className="italic">Next Generation</span> of Asset Security & Account Abstraction
       </motion.h1>
     </LampContainer>
   );
@@ -26,7 +26,7 @@ export const LampContainer = ({ children, className }) => {
   return (
     <div
       className={cn(
-        "relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black w-full rounded-md z-0",
+        "relative flex h-96 pt-16 flex-col items-center justify-center overflow-hidden bg-black w-full rounded-md z-0",
         className
       )}
     >
