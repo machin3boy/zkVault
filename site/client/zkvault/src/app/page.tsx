@@ -1,5 +1,6 @@
+"use client";
 import React, { useEffect } from 'react';
-import { EvervaultCard } from './components/ui/evervault-card';
+import { EvervaultCard } from './components/ui/evervault-card'
 import { LampDemo } from './components/ui/lamp';
 import {GoogleGeminiEffectDemo} from './components/gemini'
 import { useMotionValue } from "framer-motion";
