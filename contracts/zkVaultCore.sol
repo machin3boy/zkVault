@@ -68,71 +68,51 @@ contract zkVaultCore is ERC20 {
         uint256 timestamp,
         ProofParameters calldata params
     ) external {
-        address userAddress = usernameAddress[_username];
-        require(userAddress != address(0), "Username does not exist");
+        address oldUserAddress = usernameAddress[_username];
+        require(oldUserAddress != address(0), "Username does not exist");
 
         // Verify password
-        verifyPassword(passwordHashes[userAddress], timestamp, params);
+        verifyPassword(passwordHashes[oldUserAddress], timestamp, params);
 
         // Recover mirrored ERC20 tokens
-        uint256 erc20RequestCount = mirroredTokenRequestCount[_username];
-        for (uint256 i = 0; i < erc20RequestCount; ++i) {
+        uint256 requestCount = mirroredTokenRequestCount[_username];
+        for (uint256 i = 0; i < requestCount; ++i) {
             address mirroredToken = mirroredERC20Tokens[_username][i];
             if (mirroredToken != address(0)) {
                 uint256 balance = MirroredERC20(mirroredToken).balanceOf(
-                    userAddress
+                    oldUserAddress
                 );
-                if (
-                    balance > 0 &&
-                    MirroredERC20(mirroredToken).allowance(
-                        userAddress,
-                        address(this)
-                    ) >=
-                    balance
-                ) {
-                    // Transfer tokens from user address to contract
-                    MirroredERC20(mirroredToken).transferFrom(
-                        userAddress,
-                        address(this),
+                if (balance > 0) {
+                    // Burn tokens from the old user address
+                    MirroredERC20(mirroredToken).burnFrom(
+                        oldUserAddress,
                         balance
                     );
-                    // Transfer tokens from contract to new user address
-                    MirroredERC20(mirroredToken).transfer(msg.sender, balance);
+                    // Mint tokens to the new user address
+                    MirroredERC20(mirroredToken).mint(msg.sender, balance);
                 }
             }
         }
 
         // Recover mirrored ERC721 tokens
-        uint256 erc721RequestCount = mirroredTokenRequestCount[_username];
-        for (uint256 i = 0; i < erc721RequestCount; ++i) {
+        for (uint256 i = 0; i < requestCount; ++i) {
             address mirroredToken = mirroredERC721Tokens[_username][i];
             if (mirroredToken != address(0)) {
+                uint256 tokenId = underlyingERC721TokenIds[_username][i];
                 if (
-                    MirroredERC721(mirroredToken).exists(0) &&
-                    MirroredERC721(mirroredToken).ownerOf(0) == userAddress &&
-                    MirroredERC721(mirroredToken).isApprovedForAll(
-                        userAddress,
-                        address(this)
-                    )
+                    MirroredERC721(mirroredToken).ownerOfToken(tokenId) ==
+                    oldUserAddress
                 ) {
-                    // Transfer token from user address to contract
-                    MirroredERC721(mirroredToken).transferFrom(
-                        userAddress,
-                        address(this),
-                        0
-                    );
-                    // Transfer token from contract to new user address
-                    MirroredERC721(mirroredToken).transferFrom(
-                        address(this),
-                        msg.sender,
-                        0
-                    );
+                    // Burn token from the old user address
+                    MirroredERC721(mirroredToken).burn(tokenId);
+                    // Mint token to the new user address
+                    MirroredERC721(mirroredToken).mint(msg.sender, tokenId);
                 }
             }
         }
 
         // Reset mappings
-        delete usernames[userAddress];
+        delete usernames[oldUserAddress];
         usernames[msg.sender] = _username;
         usernameAddress[_username] = msg.sender;
         passwordHashes[msg.sender] = passwordHash;
@@ -396,7 +376,6 @@ contract MirroredERC20 is ERC20 {
     address public underlyingAsset;
     uint256 public requestId;
     string public username;
-    mapping(address => bool) private _approvalCalled;
     address public owner;
 
     constructor(
@@ -422,27 +401,12 @@ contract MirroredERC20 is ERC20 {
         require(msg.sender == owner, "Only the owner can burn tokens");
         _burn(account, amount);
     }
-
-    function approve(address spender, uint256 amount)
-        public
-        virtual
-        override
-        returns (bool)
-    {
-        require(
-            !_approvalCalled[msg.sender],
-            "Approval can only be called once"
-        );
-        _approvalCalled[msg.sender] = true;
-        return super.approve(spender, amount);
-    }
 }
 
 contract MirroredERC721 is ERC721 {
     address public underlyingAsset;
     uint256 public requestId;
     string public username;
-    mapping(address => bool) private _approvalCalled;
     address public owner;
 
     constructor(
@@ -469,20 +433,7 @@ contract MirroredERC721 is ERC721 {
         _burn(tokenId);
     }
 
-    function setApprovalForAll(address to, bool approval)
-        public
-        virtual
-        override
-    {
-        require(
-            !_approvalCalled[msg.sender],
-            "Approval can only be called once"
-        );
-        _approvalCalled[msg.sender] = true;
-        super.setApprovalForAll(to, approval);
-    }
-
-    function exists(uint256 tokenId) public view returns (bool) {
-        return exists(tokenId);
+    function ownerOfToken(uint256 tokenId) public view returns (address) {
+        return _ownerOf(tokenId);
     }
 }
