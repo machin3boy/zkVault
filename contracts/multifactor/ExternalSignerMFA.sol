@@ -71,69 +71,63 @@ contract ExternalSignerMFA {
         )
     {
         bytes memory messageBytes = bytes(message);
-        uint256 index = 0;
+        uint256 dashIndex1 = findDashIndex(messageBytes, 0);
+        uint256 dashIndex2 = findDashIndex(messageBytes, dashIndex1 + 1);
 
-        // Parse username
-        string memory username = parseString(messageBytes, index);
-        index += bytes(username).length + 1; // Skip the '-'
+        require(
+            dashIndex1 > 0 && dashIndex2 > dashIndex1,
+            "Invalid message format"
+        );
 
-        // Parse requestId
-        uint256 requestId = parseUint(messageBytes, index);
-        index += getDigitsCount(requestId) + 1; // Skip the '-'
-
-        // Parse timestamp
-        uint256 timestamp = parseUint(messageBytes, index);
+        string memory username = substring(message, 0, dashIndex1);
+        uint256 requestId = stringToUint(
+            substring(message, dashIndex1 + 1, dashIndex2)
+        );
+        uint256 timestamp = stringToUint(
+            substring(message, dashIndex2 + 1, messageBytes.length)
+        );
 
         return (username, requestId, timestamp);
     }
 
-    // Helper function to parse a string from bytes
-    function parseString(bytes memory data, uint256 startIndex)
-        internal
-        pure
-        returns (string memory)
-    {
-        uint256 endIndex = startIndex;
-        while (endIndex < data.length && data[endIndex] != "-") {
-            endIndex++;
-        }
-        bytes memory stringBytes = new bytes(endIndex - startIndex);
-        for (uint256 i = startIndex; i < endIndex; i++) {
-            stringBytes[i - startIndex] = data[i];
-        }
-        return string(stringBytes);
-    }
-
-    // Helper function to parse a uint256 from bytes
-    function parseUint(bytes memory data, uint256 startIndex)
+    // Helper function to find the index of the next dash ('-') character
+    function findDashIndex(bytes memory data, uint256 startIndex)
         internal
         pure
         returns (uint256)
     {
-        uint256 value = 0;
-        uint256 index = startIndex;
-        bool isZero = true;
-        while (index < data.length && data[index] != "-") {
-            if (data[index] != "0") {
-                isZero = false;
+        for (uint256 i = startIndex; i < data.length; i++) {
+            if (data[i] == "-") {
+                return i;
             }
-            value = value * 10 + uint256(uint8(data[index])) - 48;
-            index++;
         }
-        if (isZero && index > startIndex) {
-            return 0;
-        }
-        return value;
+        return data.length;
     }
 
-    // Helper function to get the count of digits in a uint256
-    function getDigitsCount(uint256 value) internal pure returns (uint256) {
-        uint256 count = 0;
-        while (value != 0) {
-            count++;
-            value /= 10;
+    // Helper function to extract a substring from a string
+    function substring(
+        string memory str,
+        uint256 startIndex,
+        uint256 endIndex
+    ) internal pure returns (string memory) {
+        bytes memory strBytes = bytes(str);
+        bytes memory result = new bytes(endIndex - startIndex);
+        for (uint256 i = startIndex; i < endIndex; i++) {
+            result[i - startIndex] = strBytes[i];
         }
-        return count;
+        return string(result);
+    }
+
+    // Helper function to convert a string to uint256
+    function stringToUint(string memory str) internal pure returns (uint256) {
+        bytes memory strBytes = bytes(str);
+        uint256 result = 0;
+        for (uint256 i = 0; i < strBytes.length; i++) {
+            uint256 digit = uint256(uint8(strBytes[i])) - 48;
+            require(digit >= 0 && digit <= 9, "Invalid character in string");
+            result = result * 10 + digit;
+        }
+        return result;
     }
 
     function returnTimestamp() public view returns (uint256) {
