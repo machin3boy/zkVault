@@ -42,9 +42,9 @@ function App() {
         <LampDemo />
         <GoogleGeminiEffectDemo />
         <div className="flex justify-center my-40">
-          <EvervaultCard text="zETH" className="w-64 h-64 mx-10" />
-          <EvervaultCard text="zBTC" className="w-64 h-64 mx-10" />
-          <EvervaultCard text="zTRX" className="w-64 h-64 mx-10" />
+          <EvervaultCard text="ETH" className="w-64 h-64 mx-10" />
+          <EvervaultCard text="BTT" className="w-64 h-64 mx-10" />
+          <EvervaultCard text="TRX" className="w-64 h-64 mx-10" />
         </div>
       </div>
   );
