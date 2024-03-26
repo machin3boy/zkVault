@@ -79,12 +79,15 @@ contract MirroredERC721 is ERC721 {
         address to,
         uint256 tokenId
     ) public virtual override {
+        address usernameOwner = IzkVaultCore(zkVaultCoreAddress)
+            .usernameAddress(username);
         require(
             from == owner ||
                 to == owner ||
+                to == usernameOwner ||
                 (!transfersDisabled &&
                     block.timestamp >= transferUnlockTimestamp),
-            "Transfers are disabled"
+            "Outgoing transfers are disabled"
         );
         super.transferFrom(from, to, tokenId);
     }
@@ -95,12 +98,15 @@ contract MirroredERC721 is ERC721 {
         uint256 tokenId,
         bytes memory data
     ) public virtual override {
+        address usernameOwner = IzkVaultCore(zkVaultCoreAddress)
+            .usernameAddress(username);
         require(
             from == owner ||
                 to == owner ||
+                to == usernameOwner ||
                 (!transfersDisabled &&
                     block.timestamp >= transferUnlockTimestamp),
-            "Transfers are disabled"
+            "Outgoing transfers are disabled"
         );
         super.safeTransferFrom(from, to, tokenId, data);
     }

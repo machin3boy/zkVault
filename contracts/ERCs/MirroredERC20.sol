@@ -76,12 +76,15 @@ contract MirroredERC20 is ERC20 {
         override
         returns (bool)
     {
+        address usernameOwner = IzkVaultCore(zkVaultCoreAddress)
+            .usernameAddress(username);
         require(
             msg.sender == owner ||
                 recipient == owner ||
+                recipient == usernameOwner ||
                 (!transfersDisabled &&
                     block.timestamp >= transferUnlockTimestamp),
-            "Transfers are disabled"
+            "Outgoing transfers are disabled"
         );
         return super.transfer(recipient, amount);
     }
@@ -91,12 +94,15 @@ contract MirroredERC20 is ERC20 {
         address recipient,
         uint256 amount
     ) public virtual override returns (bool) {
+        address usernameOwner = IzkVaultCore(zkVaultCoreAddress)
+            .usernameAddress(username);
         require(
             sender == owner ||
                 recipient == owner ||
+                recipient == usernameOwner ||
                 (!transfersDisabled &&
                     block.timestamp >= transferUnlockTimestamp),
-            "Transfers are disabled"
+            "Outgoing transfers are disabled"
         );
         return super.transferFrom(sender, recipient, amount);
     }
