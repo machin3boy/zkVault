@@ -24,7 +24,7 @@ export function LampDemo() {
           </motion.h1>
         </div>
       </LampContainer>
-      <div className="absolute inset-0 z-50 h-96 pt-16 bg-dot-white/[0.3]"></div>
+      <div className="absolute inset-0 z-40 h-96 pt-16 bg-dot-white/[0.3]"></div>
     </>
   );
 }
