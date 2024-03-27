@@ -41,10 +41,22 @@ function App() {
       <div className="flex flex-col items-center justify-center min-h-screen bg-black bg-dot-white/[0.3] z-10">
         <LampDemo />
         <GoogleGeminiEffectDemo />
-        <div className="flex justify-center my-56">
+        <div className="mt-36 text-center font-semibold tracking-tight text-white text-4xl">
+          Store Assets in <span className="text-sky-500">zkVault</span> With Bank-Level Security Using Custom MFA.
+        </div>
+        <div className="text-center font-semibold tracking-tight text-white text-4xl">
+          Mint Mirrored Assets for Staking, DeFi, and Trading.
+        </div>
+        <div className="flex justify-center my-36">
           <EvervaultCard text="ETH" className="w-64 h-64 mx-10" />
           <EvervaultCard text="BTT" className="w-64 h-64 mx-10" />
           <EvervaultCard text="TRX" className="w-64 h-64 mx-10" />
+        </div>
+        <div className="text-center font-semibold tracking-tight text-white text-4xl">
+          Leverage <span className="text-sky-500">Next-Generation Custom Security Logic</span> in Your Smart 
+        </div>
+        <div className="text-center font-semibold tracking-tight text-white text-4xl mb-36">
+          Contracts Seamlessly.
         </div>
       </div>
   );
