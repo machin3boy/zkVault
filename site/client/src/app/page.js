@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import { EvervaultCard } from "./components/ui/evervault-card";
 import { LampDemo } from "./components/ui/lamp";
 import { GoogleGeminiEffectDemo } from "./components/gemini";
+import { Logo } from "./components/logo";
 import { useMotionValue } from "framer-motion";
 
 function App() {
@@ -38,27 +39,36 @@ function App() {
   }, [pathLengths]); // Include pathLengths in the dependency array
 
   return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-black bg-dot-white/[0.3] z-10">
-        <LampDemo />
-        <GoogleGeminiEffectDemo />
-        <div className="mt-36 text-center font-semibold tracking-tight text-white text-4xl">
-          Store Assets in <span className="text-sky-500">zkVault</span> With Bank-Level Security Using Custom MFA.
-        </div>
-        <div className="text-center font-semibold tracking-tight text-white text-4xl">
-          Mint Mirrored Assets for Staking, DeFi, and Trading.
-        </div>
-        <div className="flex justify-center my-36">
-          <EvervaultCard text="ETH" className="w-64 h-64 mx-10" />
-          <EvervaultCard text="BTT" className="w-64 h-64 mx-10" />
-          <EvervaultCard text="TRX" className="w-64 h-64 mx-10" />
-        </div>
-        <div className="text-center font-semibold tracking-tight text-white text-4xl">
-          Leverage <span className="text-sky-500">Next-Generation Custom Security Logic</span> in Your Smart 
-        </div>
-        <div className="text-center font-semibold tracking-tight text-white text-4xl mb-36">
-          Contracts Seamlessly.
-        </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-black bg-dot-white/[0.3] z-10">
+      <div className="fixed top-0 left-0 z-50 flex items-center px-2 py-2">
+        <Logo className="h-10" />
+        <div className="ml-2 font-bold text-2xl">zkVault</div>
       </div>
+      <LampDemo />
+      <GoogleGeminiEffectDemo />
+      <div className="mt-36 text-center font-semibold tracking-tight text-white text-4xl">
+        Store Assets in <span className="text-sky-500">zkVault</span> With
+        Bank-Level Security Using Custom MFA.
+      </div>
+      <div className="text-center font-semibold tracking-tight text-white text-4xl">
+        Mint Mirrored Assets for Staking, DeFi, and Trading.
+      </div>
+      <div className="flex justify-center my-36">
+        <EvervaultCard text="ETH" className="w-64 h-64 mx-10" />
+        <EvervaultCard text="BTT" className="w-64 h-64 mx-10" />
+        <EvervaultCard text="TRX" className="w-64 h-64 mx-10" />
+      </div>
+      <div className="text-center font-semibold tracking-tight text-white text-4xl">
+        Leverage{" "}
+        <span className="text-sky-500">
+          Next-Generation Custom Security Logic
+        </span>{" "}
+        in Your Smart
+      </div>
+      <div className="text-center font-semibold tracking-tight text-white text-4xl mb-36">
+        Contracts Seamlessly.
+      </div>
+    </div>
   );
 }
 
