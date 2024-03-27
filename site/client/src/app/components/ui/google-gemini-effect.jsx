@@ -16,23 +16,23 @@ export const GoogleGeminiEffect = ({
   className,
 }) => {
   return (
-    <div className={cn("sticky top-[28vh]", className)}>
+    <div className={cn("sticky top-[20vh]", className)}>
       {/* <p className="text-xs md:text-xl font-normal text-center text-neutral-400 mt-4 max-w-lg mx-auto">
         {description ||
           `Scroll this component and see the bottom SVG come to life wow this
         works!`}
       </p> */}
-      <div className="w-full h-[890px] -top-60 flex items-center justify-center bg-black bg-dot-white/[0.3] absolute">
-        <div className="mt-36 mb-1">
-          <HoverBorderGradient>
-            Secure My Assets
-          </HoverBorderGradient>
+      <div className="w-full h-[1200px] -top-60 flex items-center justify-center bg-black bg-dot-white/[0.3] absolute">
+        <div className="mb-32">
+            <HoverBorderGradient className="py-3 font-bold">
+              Secure My Assets
+            </HoverBorderGradient>
         </div>
       </div>
       <svg
         width="1440"
         height="890"
-        viewBox="0 0 1440 890"
+        viewBox="187.5 112.5 1065 665"
         xmlns="http://www.w3.org/2000/svg"
         className=" absolute -top-60 w-full"
       >
