@@ -6,21 +6,23 @@ import { cn } from "../../utils/cn";
 export function LampDemo() {
   return (
     <>
-      <LampContainer>
-        <motion.h1
-          initial={{ opacity: 0.0, y: 350 }}
-          whileInView={{ opacity: 1, y: 180 }}
-          transition={{
-            delay: 0.3,
-            duration: 0.8,
-            ease: "easeInOut",
-          }}
-          className="bg-gradient-to-br from-stone-50 to-slate-300 py-4 bg-clip-text text-center font-semibold tracking-tight text-white text-4xl"
-        >
-          <span className="text-sky-500">zkVault:</span> The{" "}
-          <span className="italic">Next Generation</span> of Asset Security &
-          Account Abstraction
-        </motion.h1>
+      <LampContainer className="pt-32">
+        <div className="max-w-4xl mx-auto px-4">
+          <motion.h1
+            initial={{ opacity: 0.0, y: 400 }}
+            whileInView={{ opacity: 1, y: 250 }}
+            transition={{
+              delay: 0.3,
+              duration: 0.8,
+              ease: "easeInOut",
+            }}
+            className="bg-gradient-to-br from-stone-50 to-slate-300 py-4 bg-clip-text text-center font-semibold tracking-tight text-white text-5xl"
+          >
+            <span className="text-sky-500">zkVault:</span> The{" "}
+            <span className="italic">Next Generation</span> of Asset Security &
+            Account Abstraction
+          </motion.h1>
+        </div>
       </LampContainer>
       <div className="absolute inset-0 z-50 h-96 pt-16 bg-dot-white/[0.3]"></div>
     </>
@@ -49,12 +51,8 @@ export const LampContainer = ({ children, className }) => {
           }}
           className="absolute inset-auto right-1/2 h-56 overflow-visible w-[30rem] bg-gradient-conic from-cyan-500 via-transparent to-transparent text-white [--conic-position:from_70deg_at_center_top]"
         >
-          <div
-            className="absolute w-[100%] left-0 bg-black h-40 bottom-0 z-20 [mask-image:linear-gradient(to_top,white,transparent)]"
-          />
-          <div
-            className="absolute w-40 h-[100%] left-0 bg-black bottom-0 z-20 [mask-image:linear-gradient(to_right,white,transparent)]"
-          />
+          <div className="absolute w-[100%] left-0 bg-black h-40 bottom-0 z-20 [mask-image:linear-gradient(to_top,white,transparent)]" />
+          <div className="absolute w-40 h-[100%] left-0 bg-black bottom-0 z-20 [mask-image:linear-gradient(to_right,white,transparent)]" />
         </motion.div>
         <motion.div
           initial={{ opacity: 0.5, width: "15rem" }}
@@ -69,12 +67,8 @@ export const LampContainer = ({ children, className }) => {
           }}
           className="absolute inset-auto left-1/2 h-56 w-[30rem] bg-gradient-conic from-transparent via-transparent to-cyan-500 text-white [--conic-position:from_290deg_at_center_top]"
         >
-          <div
-            className="absolute w-40 h-[100%] right-0 bg-black bottom-0 z-20 [mask-image:linear-gradient(to_left,white,transparent)]"
-          />
-          <div
-            className="absolute w-[100%] right-0 bg-black h-40 bottom-0 z-20 [mask-image:linear-gradient(to_top,white,transparent)]"
-          />
+          <div className="absolute w-40 h-[100%] right-0 bg-black bottom-0 z-20 [mask-image:linear-gradient(to_left,white,transparent)]" />
+          <div className="absolute w-[100%] right-0 bg-black h-40 bottom-0 z-20 [mask-image:linear-gradient(to_top,white,transparent)]" />
         </motion.div>
         <div className="absolute top-1/2 h-48 w-full translate-y-12 scale-x-150 bg-black blur-2xl"></div>
         <div className="absolute top-1/2 z-50 h-48 w-full bg-transparent opacity-10 backdrop-blur-md"></div>
